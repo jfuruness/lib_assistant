@@ -31,3 +31,4 @@
     * Don't use timeouts, use wait for element in selenium
     * Fix password retrieval for huskyct
     * Remove the numbers that we add
+    * Fix feeling lucky button on googl

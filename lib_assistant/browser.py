@@ -46,7 +46,7 @@ class Browser:
     def get(self, url):
         self.browser.get(url)
 
-    def get_el(self, _id=None, name=None, tag=None, plural=False):
+    def get_el(self, _id=None, name=None, tag=None, xpath=None, plural=False):
         if _id:
             return self.browser.find_element_by_id(_id)
         if name:
@@ -56,6 +56,25 @@ class Browser:
                 return self.browser.find_elements_by_tag_name(tag)
             else:
                 return self.browser.find_element_by_tag_name(tag)
+        if xpath:
+            if plural:
+                return self.browser.find_elements_by_xpath(xpath)
+            else:
+                return self.browser.find_element_by_xpath(xpath)
+
+    def get_clickable(self):
+        a_tags = self.get_el(tag="a", plural=True)
+        # https://stackoverflow.com/a/48365300/8903959
+        submit_buttons = self.get_el(xpath="//input[@type='submit']", plural=True)
+        other_buttons = self.get_el(xpath="//input[@type='button']", plural=True)
+        standard_buttons = [x for x in submit_buttons + other_buttons
+                            if (x.get_attribute("value")
+                                and "Lucky" not in x.get_attribute("value"))]
+
+        radio_buttons = self.get_el(xpath="//input[@type='radio']", plural=True)
+        clickables = a_tags + standard_buttons + radio_buttons
+        
+        return [elem for elem in clickables if self.valid_elem(elem)]
 
     def valid_elem(self, elem):
         if elem.is_displayed() and elem.is_enabled():
@@ -64,12 +83,43 @@ class Browser:
             return False
 
     def add_number(self, num, elem):
+        if elem.get_attribute("type").lower() in ["submit", "button"]:
+            self.add_number_to_button(num, elem)
+        elif elem.get_attribute("type").lower() == "radio":
+            self.add_number_to_radio(num, elem)
+        else:
+            self.add_number_to_elem(num, elem)
+
+    def add_number_to_radio(self, num, button):
+        # https://stackoverflow.com/a/18079918
+        # https://www.edureka.co/community/4032/how-get-next-sibling-element-using-xpath-and-selenium-for-java
+        #next_elem = button.find_element_by_xpath("following-sibling::*")
+        parent_elem = button.find_element_by_xpath("..")
+        num_str = self._format_number(num)
+        # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
+        javascript_str = (f"text = document.createTextNode('{num_str}');"
+                          f"arguments[0].appendChild(text);")
+        # https://stackoverflow.com/a/14052682
+        #child_elems = parent_elem.find_elements_by_xpath(".//*")
+        #for i, elem in enumerate(child_elems):
+        #    if elem.get_attribute("type").lower() == "radio":
+        #        next_elem = child_elems[i + 1]
+        self.browser.execute_script(javascript_str, parent_elem)
+        #self.add_number_to_elem(num, next_elem)
+
+    def add_number_to_button(self, num, button):
+        #print(button.get_attribute("outerHTML"))
+        #input()
+        button_value = button.get_attribute("value")
+        num_str = f"{self._format_number(num)}{button_value}"
+        self.browser.execute_script(f"arguments[0].value = '{num_str}'",
+                                    button)
+
+    def add_number_to_elem(self, num, elem):
         # https://stackoverflow.com/a/26947299
-        print(elem.text)
-        print(elem.get_attribute("innerHTML"))
-        input(self.valid_elem(elem))
-        if not self.valid_elem(elem):
-            return
+        #print(elem.text)
+        #print(elem.get_attribute("innerHTML"))
+        #input(self.valid_elem(elem))
         # https://stackoverflow.com/a/41553384/8903959
         # https://stackoverflow.com/a/49071078/8903959
         #num_str = (f"""<div style="color:blue;"""
@@ -78,17 +128,12 @@ class Browser:
         #           f"border: 1px solid black;"
         #           f"""clear: both;background:red">:{num}:{elem.text}</div>""")
         num_str = f"{self._format_number(num)}{elem.text}"
-#        print(num_str)
-#        input(elem.get_attribute("outerHTML"))
-        # Change to innerHtml or textContent? Potentially inline css style?
 #        self.browser.execute_script(f"arguments[0].style.backgroundColor = 'white'",
 #                                    elem)
         self.browser.execute_script(f"arguments[0].innerText = '{num_str}'",
                                     elem)
 
     def remove_number(self, num, elem):
-        if not self.valid_elem(elem):
-            return
         num_str = elem.text.replace(self._format_number(num), "")
         self.browser.execute_script(f"arguments[0].innerText = '{num_str}'",
                                     elem)

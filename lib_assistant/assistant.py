@@ -93,6 +93,14 @@ class Assistant:
             # Don't run the code below
             return
 
+        self.switch_to_iframe(browser)
+
+        # Get all links within the page
+        for i, tag in enumerate(browser.get_clickable()):
+            # Add a number next to all of the links
+            browser.add_number(i, tag)
+
+    def switch_to_iframe(self, browser):
         # Switches in and out of iframe
         if browser.in_iframe:
             browser.browser.switch_to.default_content()
@@ -107,10 +115,6 @@ class Assistant:
             browser.browser.switch_to.frame(browser.get_el(name=iframe_name))
             browser.in_iframe = True
 
-        # Get all links within the page
-        for i, tag in enumerate(browser.get_el(tag="a", plural=True)):
-            # Add a number next to all of the links
-            browser.add_number(i, tag)
 
     def click(self, text):
         number, side = text.replace("tap number", "").strip().split("on the")
@@ -124,7 +128,7 @@ class Assistant:
         tag_to_click = None
 
         # Get all links within the page
-        for i, tag in enumerate(browser.get_el(tag="a", plural=True)):
+        for i, tag in enumerate(browser.get_clickable()):
             # Add a number next to all of the links
             if i == number:
                 tag_to_click = tag
@@ -134,6 +138,10 @@ class Assistant:
 
 
     def text2int(self, textnum, numwords={}):
+        try:
+            return int(textnum)
+        except ValueError:
+            pass
         # https://stackoverflow.com/a/493788/8903959
         if not numwords:
           units = [
