@@ -3,6 +3,8 @@
     * ```pip3 install pocketsphinx```
 * Todo
     * add linux to setup.py
+
+
     * login to huskyct
     * Dynamically click anything within huskyct (including radio buttons)
         * Should be able to add and remove numbers to text
@@ -12,6 +14,10 @@
     * Multi window functionality
     * copy pasting
         * Either by dragging (could use toes?) Or by options of text box?
+
+
+
+
     * More specific actions
         * Go straight to 3500
         * 3500 quizzes
@@ -21,3 +27,7 @@
     * Improve accuracy
     * Improve speed
     * Code in C
+    * Fix small overlap when double browser opens
+    * Don't use timeouts, use wait for element in selenium
+    * Fix password retrieval for huskyct
+    * Remove the numbers that we add

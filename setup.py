@@ -12,6 +12,7 @@ setup(
     keywords=['Furuness', 'Assistant', 'voice', 'sphinx', 'voice assistant'],
     install_requires=[
         'pocketsphinx'
+        'selenium'
     ],
     classifiers=[
         'Environment :: Console',
