@@ -2,7 +2,10 @@ from enum import Enum
 from os.path import expanduser
 import os
 import subprocess
+import time
 
+from pynput.keyboard import Key, Controller
+import selenium
 from selenium import webdriver
 from selenium.webdriver import ChromeOptions as Options
 from selenium.webdriver.common.keys import Keys
@@ -17,6 +20,7 @@ class Browser:
         if not os.path.exists(self.driver_path):
             self.install()
         self.in_iframe = False
+        self.pdf = False
 
     @property
     def url(self):
@@ -199,6 +203,13 @@ class Browser:
 #        action.perform()
         for _ in range(3):
             self.get_el(tag="body").send_keys(Keys.ARROW_UP)
+        if self.pdf:
+            keyboard = Controller()
+            for key_type in ["up"] * 6:
+                print(f"Sending key: {key_type}")
+                keyboard.press(getattr(Key, key_type))
+                keyboard.release(getattr(Key, key_type))
+                time.sleep(.2)
 
     def scroll_down(self):
         el = self.get_el(tag="body")
@@ -208,14 +219,44 @@ class Browser:
  #       action.perform()
         for _ in range(3):
             self.get_el(tag="body").send_keys(Keys.ARROW_DOWN)
+        if self.pdf:
+            keyboard = Controller()
+            for key_type in ["down"] * 6:
+                print(f"Sending key: {key_type}")
+                keyboard.press(getattr(Key, key_type))
+                keyboard.release(getattr(Key, key_type))
+                time.sleep(.2)
 
     def page_up(self):
+        print(self.url)
         for _ in range(3):
             self.get_el(tag="body").send_keys(Keys.PAGE_UP)
+        if self.pdf:
+            keyboard = Controller()
+            for key_type in ["page_up"]:
+                print(f"Sending key: {key_type}")
+                keyboard.press(getattr(Key, key_type))
+                keyboard.release(getattr(Key, key_type))
+                time.sleep(.2)
+
 
     def page_down(self):
+        print(self.url)
         for _ in range(3):
             self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
+        if self.pdf:
+
+            keyboard = Controller()
+            for key_type in ["page_down"]:
+                print(f"Sending key: {key_type}")
+                keyboard.press(getattr(Key, key_type))
+                keyboard.release(getattr(Key, key_type))
+                time.sleep(.2)
+
+
+    def right_click_tag(self, tag):
+        action = selenium.webdriver.ActionChains(self.browser)
+        action.context_click(self.get_el(tag=tag)).perform()
 
 class Side(Enum):
     LEFT = "left"

@@ -32,3 +32,4 @@
     * Fix password retrieval for huskyct
     * Remove the numbers that we add
     * Fix feeling lucky button on googl
+    * Fix it so that it knows pdf index for scrolling properly

@@ -11,7 +11,8 @@ setup(
     download_url='https://github.com/jfuruness/lib_assistant.git',
     keywords=['Furuness', 'Assistant', 'voice', 'sphinx', 'voice assistant'],
     install_requires=[
-        'pocketsphinx'
+        'pocketsphinx',
+        'pynput',
         'selenium'
     ],
     classifiers=[

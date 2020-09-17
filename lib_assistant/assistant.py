@@ -2,6 +2,7 @@ import logging
 import time
 
 from pocketsphinx import LiveSpeech
+from pynput.keyboard import Key, Controller
 import selenium
 from selenium.webdriver.common.keys import Keys
 
@@ -30,6 +31,7 @@ class Assistant:
             "login": self.google_mode_huskyct,
             "log in": self.google_mode_huskyct,
             "go to school": self.google_mode_huskyct,
+            "go to Europe": self.google_mode_mimir,
             "Orange": self.show_links,
             "Show numbers": self.show_links,
             "Show the numbers": self.show_links,
@@ -53,7 +55,9 @@ class Assistant:
             "Paige up": self.page_up,
             "Paige cop": self.page_up,
             "Go back to the top": self.page_up,
-            "Go back to the bottom": self.page_up,
+            "Back to the top": self.page_up,
+            "Go back to the bottom": self.page_down,
+            "Back to the bottom": self.page_down,
             "Paige down": self.page_down,
             "School": self.focus_left,
             "Right": self.focus_right,
@@ -63,6 +67,14 @@ class Assistant:
             "Tap number fifteen": self.click,
             "Tap number sixteen": self.click,
             "search": self.search,
+            "Download file": self.download_mimir_pdf,
+            "Downvote a file": self.download_mimir_pdf,
+            "Downvote file": self.download_mimir_pdf,
+            "Download a file": self.download_mimir_pdf,
+            "move over": self.switch_tab,
+            "Quit": self.quit,
+            "shut down": self.quit,
+            "Shut us down": self.quit,
         }
         self.callbacks = {k.lower(): v for k, v in self.callbacks.items()}
         with open(self.keywords_path, "w") as f:
@@ -89,6 +101,15 @@ class Assistant:
             else:
                 print(speech)
 
+    def google_mode_mimir(self, *args):
+        """Opens up mimir with google"""
+
+        # Open google
+        self._open_google()
+        # Left browser login to mimir
+        self._login_to_mimir()
+
+
     def google_mode_huskyct(self, *args):
         """Open up two browsers side by side for googling.
 
@@ -96,21 +117,22 @@ class Assistant:
         The right browser will be able to google with
         """
 
-        # Init browsers        
-        self.left_browser = Browser()
-        self.right_browser = Browser()
-        # Open left browser and align left
-        self.left_browser.open(side=Side.LEFT)
-        # Open right browser and align right
-        self.right_browser.open(side=Side.RIGHT)
-
-        # Right browser goes to google
-        self.right_browser.get("http://www.google.com")
-
+        # Open google
+        self._open_google()
         # Left browser login to huskyct
         self._login_to_huskyct()
 
+    def _open_google(self):
+        self.right_browser = Browser()
+        # Open right browser and align right
+        self.right_browser.open(side=Side.RIGHT)
+        # Right browser goes to google
+        self.right_browser.get("http://www.google.com")
+
     def _login_to_huskyct(self):
+        self.left_browser = Browser()
+        # Open left browser and align left
+        self.left_browser.open(side=Side.LEFT)
         # left browser goes to huskyct
         self.left_browser.get("https://lms.uconn.edu/")
         # Wait for privacy agreement to pop up
@@ -134,8 +156,37 @@ class Assistant:
         self.left_browser.get_el(name="submit").click()
         self.left_browser.get("https://lms.uconn.edu/ultra/course")
         self.focused_browser = self.left_browser
+        time.sleep(3)
+        self.show_links()
+
+    def _login_to_mimir(self):
+        self.left_browser = Browser()
+        # Open left browser and align left
+        self.left_browser.open(side=Side.LEFT)
+        # left browser goes to huskyct
+        self.left_browser.get("https://class.mimir.io/login")
+        # Load site
+        time.sleep(1)
+        # Send in username
+        email = "christina.gorbenko@uconn.edu"
+        self.left_browser.get_el(_id="LoginForm--emailInput").send_keys(email)
+        # Send in password
+        with open("/tmp/password.txt", "r") as f:
+            password = f.read().strip()
+        pword_id = "LoginForm--passwordInput"
+        self.left_browser.get_el(_id=pword_id).send_keys(password)
+        # Click login
+        submit_id = "LoginForm--submitButton"
+        time.sleep(1)
+        self.left_browser.get_el(_id=submit_id).click()
+        time.sleep(3)
+        url = ("https://class.mimir.io/courses/"
+               "01268b2b-9903-442e-8310-9bc462c41929")
+        self.left_browser.get(url)
+        self.focused_browser = self.left_browser
         time.sleep(2)
         self.show_links()
+
 
     def show_links(self, side=None):
         # https://stackoverflow.com/a/21898701/8903959
@@ -158,14 +209,19 @@ class Assistant:
         if browser.in_iframe:
             browser.browser.switch_to.default_content()
 
+        iframe_links = {"https://lms.uconn.edu/ultra/courses":
+                            "classic-learn-iframe",
+                        "https://class.mimir.io/projects/":
+                            "main.pdf"}
+
         # https://stackoverflow.com/a/24286392
-        if "https://lms.uconn.edu/ultra/courses" in browser.url:
-            # Everything from here on in operates from within an iframe
-            # Wait for iframe to load
-            time.sleep(2)
-            # Switch to iframe, life is good
-            iframe_name = "classic-learn-iframe"
-            browser.browser.switch_to.frame(browser.get_el(name=iframe_name))
+        for iframe_link, iframe_name in iframe_links.items():
+            if iframe_link in browser.url:
+                # Everything from here on in operates from within an iframe
+                # Wait for iframe to load
+                time.sleep(2)
+                # Switch to iframe, life is good
+                browser.browser.switch_to.frame(browser.get_el(name=iframe_name))
             browser.in_iframe = True
 
 
@@ -296,3 +352,51 @@ class Assistant:
 
     def focus_right(self, *args):
         self.focused_browser = self.right_browser
+
+    def download_mimir_pdf(self, *args):
+        self.focused_browser.right_click_tag(tag="embed")
+        time.sleep(.5)
+        embed = self.focused_browser.get_el(tag="embed")
+        action = selenium.webdriver.ActionChains(self.focused_browser.browser)
+        keyboard = Controller()
+        for key_type in ["down", "enter", "enter"]:
+            print(f"Sending key: {key_type}")
+            keyboard.press(getattr(Key, key_type))
+            keyboard.release(getattr(Key, key_type))
+            time.sleep(1)
+
+        # https://stackoverflow.com/a/43921765
+#        input("WORKS")
+        time.sleep(1)
+        # Open downloads page
+        with keyboard.pressed(Key.ctrl):
+            print(f"Sending key: Control + j")
+            keyboard.press("j")
+            keyboard.release("j")
+            time.sleep(.2)
+
+        time.sleep(1)
+        for _ in range(2):
+            keyboard.press(Key.tab)
+            keyboard.release(Key.tab)
+            time.sleep(.2)
+        keyboard.press(Key.enter)
+        keyboard.release(Key.enter)
+        time.sleep(.25)
+        self.focused_browser.browser.switch_to.active_element
+        self.focused_browser.pdf = True
+        #self.focused_browser.get_el(_id="file-link").click()
+
+    def switch_tab(self, *args):
+        keyboard = Controller()
+        with keyboard.pressed(Key.ctrl):
+            for key_type in ["tab"]:
+                print(f"Sending key: {key_type}")
+                keyboard.press(getattr(Key, key_type))
+                keyboard.release(getattr(Key, key_type))
+                time.sleep(.2)
+        self.focused_browser.browser.switch_to.active_element
+
+    def quit(self, *args):
+        self.left_browser.browser.quit()
+        self.right_browser.browser.quit()
