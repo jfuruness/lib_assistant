@@ -5,6 +5,8 @@ import subprocess
 
 from selenium import webdriver
 from selenium.webdriver import ChromeOptions as Options
+from selenium.webdriver.common.keys import Keys
+
 
 from . import utils
 
@@ -116,6 +118,21 @@ class Browser:
                                     button)
 
     def add_number_to_elem(self, num, elem):
+        # https://stackoverflow.com/a/18079918
+        # https://www.edureka.co/community/4032/how-get-next-sibling-element-using-xpath-and-selenium-for-java
+        #next_elem = button.find_element_by_xpath("following-sibling::*")
+        parent_elem = elem.find_element_by_xpath("..")
+        num_str = self._format_number(num)
+        # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
+        javascript_str = (f"text = document.createTextNode('{num_str}');"
+                          f"arguments[0].appendChild(text);")
+        # https://stackoverflow.com/a/14052682
+        #child_elems = parent_elem.find_elements_by_xpath(".//*")
+        #for i, elem in enumerate(child_elems):
+        #    if elem.get_attribute("type").lower() == "radio":
+        #        next_elem = child_elems[i + 1]
+        self.browser.execute_script(javascript_str, parent_elem)
+        return
         # https://stackoverflow.com/a/26947299
         #print(elem.text)
         #print(elem.get_attribute("innerHTML"))
@@ -134,9 +151,15 @@ class Browser:
                                     elem)
 
     def remove_number(self, num, elem):
-        num_str = elem.text.replace(self._format_number(num), "")
+        return
+        remove_str = self._format_number(num)
+        num_str = elem.text.replace(remove_str, "")
         self.browser.execute_script(f"arguments[0].innerText = '{num_str}'",
                                     elem)
+        if elem.get_attribute("type").lower() in ["submit", "button"]:
+            num_str = elem.get_attribute("value").replace(remove_str, "")
+            self.browser.execute_script(f"arguments[0].value = '{num_str}'",
+                                        elem)
 
 
     def _format_number(self, num):
@@ -166,6 +189,33 @@ class Browser:
                "sudo unzip /tmp/chromedriver.zip "
                f"chromedriver -d {driverpath};")
         utils.run_cmds(cmd)
+
+    def scroll_up(self):
+        # https://www.reddit.com/r/learnpython/comments/6yrcee/use_selenium_to_repeatedly_send_arrowuprightdown/
+#        el = self.get_el(tag="body")
+#        action = webdriver.common.action_chains.ActionChains(self.browser)
+#        action.move_to_element_with_offset(el, 5, 5)
+#        action.click()
+#        action.perform()
+        for _ in range(3):
+            self.get_el(tag="body").send_keys(Keys.ARROW_UP)
+
+    def scroll_down(self):
+        el = self.get_el(tag="body")
+ #       action = webdriver.common.action_chains.ActionChains(self.browser)
+ #       action.move_to_element_with_offset(el, 5, 5)
+ #       action.click()
+ #       action.perform()
+        for _ in range(3):
+            self.get_el(tag="body").send_keys(Keys.ARROW_DOWN)
+
+    def page_up(self):
+        for _ in range(3):
+            self.get_el(tag="body").send_keys(Keys.PAGE_UP)
+
+    def page_down(self):
+        for _ in range(3):
+            self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
 
 class Side(Enum):
     LEFT = "left"
