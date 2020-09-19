@@ -1,6 +1,8 @@
 * Install instructions
-    * ```sudo apt-get install libpulse-dev```
-    * ```pip3 install pocketsphinx```
+    * ```sudo apt-get -Y install libpulse-dev```
+    * ```sudo apt-get -Y install swig```
+    * ```sudo apt-get -Y install libasound2-dev```
+    * 
 * Todo
     * add linux to setup.py
 
