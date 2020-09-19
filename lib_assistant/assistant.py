@@ -83,8 +83,13 @@ class Assistant:
             "Downloaded file": self.download_mimir_pdf,
             "move over": self.switch_tab,
             "switch tab": self.switch_tab,
+            "switch have": self.switch_tab,
+            "switched have": self.switch_tab,
+            "switch to tell one": self.switch_tab,
+            "switch to tap want": self.switch_tab,
             "switch to tab one": self.switch_tab,
             "switch to tab two": self.switch_tab,
+            "switch to tab to": self.switch_tab,
             "switch to tab three": self.switch_tab,
             "switch to tab four": self.switch_tab,
             "switch to tab five": self.switch_tab,
@@ -150,7 +155,10 @@ class Assistant:
             else:
                 f.write(f"Executing: {speech}")
         if func is not None:
-            func(speech)
+            try:
+                func(speech)
+            except Exception as e:
+                print(e)
             with open("/tmp/transcript.txt", "w+") as f:
                 f.write(f"Done executing {speech}")
             
@@ -375,14 +383,14 @@ class Assistant:
                 break
         tag_to_click.click()
 
-        start = datetime.now()
         # Wait until clickables change
-        while (start-datetime.now()).total_seconds() < 5:
+        for i in range(10):
             clickables = self.focused_browser.get_clickable()
             if clickables != old_clickables:
                 break
             else:
-                time.sleep(.1)
+                print("Waiting for change")
+                time.sleep(.2)
         
         self.show_links()
 

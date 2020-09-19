@@ -188,8 +188,9 @@ class Browser:
 
         print(self.url)
         el = self.get_el(tag="body")
-        for _ in range(6):
-            el.send_keys(Keys.ARROW_UP)
+        if "pdf" not in self.url:
+            for _ in range(6):
+                el.send_keys(Keys.ARROW_UP)
         if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["up"] * 6:
@@ -206,19 +207,28 @@ class Browser:
         action.move_to_element_with_offset(el, 5, 5)
         action.click()
         action.perform()
-        for _ in range(6):
-            el.send_keys(Keys.ARROW_DOWN)
+#        width = self.browser.get_window_size()["height"]
+#        height = self.browser.get_window_size()["width"]
+#        action = webdriver.common.action_chains.ActionChains(self.browser)
+#        action.move_by_offset(width // 2, height // 2)
+#        action.click()
+#        action.perform()
+        if "pdf" not in self.url:
+            for _ in range(6):
+                el.send_keys(Keys.ARROW_DOWN)
         if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["down"] * 6:
                 print(f"Sending key: {key_type}")
                 keyboard.press(getattr(Key, key_type))
                 keyboard.release(getattr(Key, key_type))
-#                time.sleep(.02)
+                time.sleep(.02)
 
     def page_up(self):
         print(self.url)
-        self.get_el(tag="body").send_keys(Keys.PAGE_UP)
+        if "pdf" not in self.url:
+
+            self.get_el(tag="body").send_keys(Keys.PAGE_UP)
         if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["page_up"]:
@@ -229,7 +239,9 @@ class Browser:
 
     def page_down(self):
         print(self.url)
-        self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
+        if "pdf" not in self.url:
+
+            self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
         if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["page_down"]:
