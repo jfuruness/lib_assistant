@@ -55,20 +55,23 @@ class Browser:
         self.browser.get(url)
 
     def get_el(self, _id=None, name=None, tag=None, xpath=None, plural=False):
-        if _id:
-            return self.browser.find_element_by_id(_id)
-        if name:
-            return self.browser.find_element_by_name(name)
-        if tag:
-            if plural:
-                return self.browser.find_elements_by_tag_name(tag)
-            else:
-                return self.browser.find_element_by_tag_name(tag)
-        if xpath:
-            if plural:
-                return self.browser.find_elements_by_xpath(xpath)
-            else:
-                return self.browser.find_element_by_xpath(xpath)
+        try:
+            if _id:
+                return self.browser.find_element_by_id(_id)
+            if name:
+                return self.browser.find_element_by_name(name)
+            if tag:
+                if plural:
+                    return self.browser.find_elements_by_tag_name(tag)
+                else:
+                    return self.browser.find_element_by_tag_name(tag)
+            if xpath:
+                if plural:
+                    return self.browser.find_elements_by_xpath(xpath)
+                else:
+                    return self.browser.find_element_by_xpath(xpath)
+        except Exception as e:
+            print(e)
 
     def get_clickable(self):
         a_tags = self.get_el(tag="a", plural=True)
@@ -256,25 +259,35 @@ class Browser:
         elem = self.wait(identifier, _type)
         elem.click()
 
-    def wait_send_keys(self, _id=None, name=None, keys="a"):
+    def wait_send_keys(self, _id=None, name=None, xpath=None, keys="a"):
         if _id:
             _type = By.ID
             identifier = _id
         elif name:
             _type = By.NAME
             identifier = name
+        elif xpath:
+            _type = By.XPATH
+            identifier = xpath
         self.wait(identifier, _type).send_keys(keys)
 
-    def switch_to_iframe(self):
+    def open_new_tab(self, url=""):
+        self.browser.execute_script(f"window.open('{url}');")
+        self.browser.switch_to_window(self.browser.window_handles[-1])
+
+    def switch_to_iframe(self, iframe=True):
         # Switches in and out of iframe
         if self.in_iframe:
             self.browser.switch_to.default_content()
             self.in_iframe = False
+        if iframe is False:
+            return
 
         iframe_links = {"https://lms.uconn.edu/ultra/courses":
                             "classic-learn-iframe",
-                        "https://class.mimir.io/projects/":
-                            "main.pdf"}
+#                        "https://class.mimir.io/projects/":
+#                            "main.pdf"}
+                        }
 
         # https://stackoverflow.com/a/24286392
         for iframe_link, iframe_name in iframe_links.items():

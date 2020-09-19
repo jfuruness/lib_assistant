@@ -35,3 +35,7 @@
     * Remove the numbers that we add
     * Fix feeling lucky button on googl
     * Fix it so that it knows pdf index for scrolling properly
+
+* Credits
+    * HUGE credits to https://github.com/LearnedVector/A-Hackers-AI-Voice-Assistant/tree/master/VoiceAssistant/speechrecognition/demo
+        * The flask app is basically straight out of here

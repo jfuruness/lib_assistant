@@ -82,6 +82,16 @@ class Assistant:
             "Download a file": self.download_mimir_pdf,
             "Downloaded file": self.download_mimir_pdf,
             "move over": self.switch_tab,
+            "switch tab": self.switch_tab,
+            "switch to tab one": self.switch_tab,
+            "switch to tab two": self.switch_tab,
+            "switch to tab three": self.switch_tab,
+            "switch to tab four": self.switch_tab,
+            "switch to tab five": self.switch_tab,
+            "switch to tab six": self.switch_tab,
+            "switch to tab seven": self.switch_tab,
+            "switch to tab eight": self.switch_tab,
+            "switch to tab nine": self.switch_tab,
             "Quit": self.quit,
             "shut down": self.quit,
             "Shut us down": self.quit,
@@ -94,6 +104,10 @@ class Assistant:
             "European homework": self.mimir_homework,
             "European work": self.mimir_homework,
             "European workshop": self.mimir_workshop,
+            "New tab": self.new_tab,
+            "watch the lecture": self.discord_youtube,
+            "pause": self.send_k,
+            "play": self.send_k,
         }
         self.callbacks = {k.lower(): v for k, v in self.callbacks.items()}
         with open(self.keywords_path, "w") as f:
@@ -111,30 +125,33 @@ class Assistant:
             speech = input("Enter word here while Christina is sleeping: ")
             callback = self.callbacks.get(speech, False)
             if callback is not False:
-                print(f"Executing: {speech}")
-                callback(speech)
-                print("Done")
+                self.execute(callback, speech)
             elif "number" in speech:
-                print(f"Executing: {speech}")
-                self.click(speech)
-                print("Done")
+                self.execute(self.click, speech)
             elif "search" in speech or "section" in speech or "said" in speech:
-                print(f"Executing: {speech}")
-                self.search(speech)
-                print("Done")
+                self.execute(self.search, speech)
             elif "european homework" in speech or "european work " in speech:
-                print(f"Executing: {speech}")
-                self.mimir_homework(speech)
-                print("Done")
+                self.execute(self.mimir_homework, speech)
             elif "european workshop" in speech:
-                print(f"Executing: {speech}")
-                self.mimir_workshop(speech)
-                print("Done")
+                self.execute(self.mimir_workshop,speech)
             else:
-                print(speech)
+                self.execute(None, speech)
+
+    def execute(self, func, speech):
+        with open("/tmp/transcript.txt", "w+") as f:
+            if func is None:
+                f.write(speech)
+            else:
+                f.write(f"Executing: {speech}")
+                func(speech)
+                f.write(f"Done executing {speech}")
+            
 
     def start_test(self, *args):
         self._open_google()
+
+    def new_tab(self, *args):
+        self.left_browser.open_new_tab()
 
     def google_mode_mimir(self, *args):
         """Opens up mimir with google"""
@@ -145,7 +162,7 @@ class Assistant:
         self._login_to_mimir()
 
     def get_num(self, speech):
-        if "one" in speech or "while" in speech or "want" in speech:
+        if "one" in speech or "while" in speech or "want" in speech or '1' in speech:
             return 1
         elif "to" in speech or "two" in speech or "too" in speech:
             return 2
@@ -172,11 +189,13 @@ class Assistant:
         self._login_to_mimir(show_links=False)
         desired_text = f"PS {self.get_num(speech)}"
         self.focused_browser.wait_click(xpath=f"//*[contains(text(), '{desired_text}')]")
+        self.download_mimir_pdf()
 
     def mimir_workshop(self, speech, *args):
         self._login_to_mimir(show_links=False)
         desired_text = f"Lab {self.get_num(speech)}"
         self.focused_browser.wait_click(xpath=f"//*[contains(text(), '{desired_text}')]")
+        self.download_mimir_pdf()
 
     def thirty_five_hundred(self, speech, *args):
         self.google_mode_huskyct(show_links=False)
@@ -211,7 +230,7 @@ class Assistant:
         if self.left_browser is None:
             self.left_browser = Browser()
             # Open left browser and align left
-        self.left_browser.open(side=Side.LEFT)
+            self.left_browser.open(side=Side.LEFT)
         # left browser goes to huskyct
         self.left_browser.get("https://lms.uconn.edu/")
         # Wait for privacy agreement to pop up and click
@@ -266,6 +285,49 @@ class Assistant:
             self.left_browser.wait("Coursework--collapseLive", By.ID)
             self.show_links()
 
+    def discord_youtube(self, *args):
+        if self.left_browser is None:
+            self.left_browser = Browser()
+            # Open left browser and align left
+            self.left_browser.open(side=Side.LEFT)
+        # left browser goes to huskyct
+        self.left_browser.get("https://discord.com/login")
+        email = self.left_browser.get_el(name="email")
+        while email is None:
+            email = self.left_browser.get_el(name="email")
+            time.sleep(.1)
+        email.send_keys("christina.gorbenko@uconn.edu")
+        try:
+            with open("/tmp/password.txt", "r") as f:
+                password = f.read()
+        except FileNotFoundError:
+            assert False, "Password!"
+        self.left_browser.get_el(name="password").send_keys(password)
+        xpath = "//button[@type='submit']"
+        self.left_browser.wait_click(xpath=xpath)
+        self.left_browser.wait("private-channels", By.ID)
+        lecture_url = ("https://discord.com/channels/720663056962813972/"
+                        "746373437567664239")
+        self.left_browser.get(lecture_url)
+
+        last_yt_link = None
+        while last_yt_link is None:
+            try:
+                elems = self.left_browser.get_el(xpath="//a[@href]", plural=True)
+                for elem in elems:
+                    href = elem.get_attribute("href")
+                    if "youtube" in href:
+                        last_yt_link = href
+            except selenium.common.exceptions.StaleElementReferenceException:
+                continue
+
+        print(last_yt_link)
+        self.focused_browser = self.left_browser
+        self.focused_browser.open_new_tab(url=last_yt_link)
+
+    def send_k(self, *args):
+        time.sleep(2)
+        self.focused_browser.get_el(tag="body").send_keys("k")
 
     def show_links(self, side=None):
         # https://stackoverflow.com/a/21898701/8903959
@@ -402,66 +464,32 @@ class Assistant:
         self.focused_browser = self.right_browser
 
     def download_mimir_pdf(self, *args):
-        print(self.focused_browser.in_iframe)
-        self.focused_browser.switch_to_iframe()
-        print(self.focused_browser.in_iframe)
-        time.sleep(1)
-        pdf = self.focused_browser.get_el(tag="embed")
-        ####### FIND BY XPATH WITH TAG
-#        pdf = self.focused_browser.wait("plugin", By.ID)
-        action = ActionChains(self.focused_browser.browser)
-        action.key_down(Keys.SHIFT)
-        action.key_down(Keys.CONTROL)
-        action.perform()
-        pdf.send_keys("s")
-        time.sleep(1)
-        pdf.send_keys("S")
-        time.sleep(1)
-        input("HEY")
-        action = ActionChains(self.driver)
-        action.key_up(Keys.SHIFT)
-        action.key_up(Keys.CONTROL)
-        action.perform()
-        input()
-        ########### MAKE SURE TO SWITCH OUT OF IFRAME
-        self.focused_browser.right_click_tag(tag="embed")
-        keyboard = Controller()
-        for key_type in ["down", "enter", "enter"]:
-            print(f"Sending key: {key_type}")
-            keyboard.press(getattr(Key, key_type))
-            keyboard.release(getattr(Key, key_type))
-            time.sleep(1)
+        pdf_url = "blank"
+        while "pdf" not in pdf_url:
+            pdf = self.focused_browser.get_el(tag="iframe")
+            pdf_url = pdf.get_attribute("src")
+            time.sleep(.1)
+        self.focused_browser.open_new_tab(url=pdf_url)
+        print(self.focused_browser.browser.current_window_handle)
+        print(self.focused_browser.browser.window_handles)
 
-        # https://stackoverflow.com/a/43921765
-#        input("WORKS")
-        time.sleep(1)
-        # Open downloads page
-        with keyboard.pressed(Key.ctrl):
-            print(f"Sending key: Control + j")
-            keyboard.press("j")
-            keyboard.release("j")
-            time.sleep(.2)
+    def switch_tab(self, speech, *args):
+        tab_num = self.get_num(speech)
 
-        time.sleep(1)
-        for _ in range(2):
-            keyboard.press(Key.tab)
-            keyboard.release(Key.tab)
-            time.sleep(.2)
-        keyboard.press(Key.enter)
-        keyboard.release(Key.enter)
-        time.sleep(.25)
-        self.focused_browser.browser.switch_to.active_element
-        self.focused_browser.pdf = True
-        #self.focused_browser.get_el(_id="file-link").click()
-
-    def switch_tab(self, *args):
-        keyboard = Controller()
-        with keyboard.pressed(Key.ctrl):
-            for key_type in ["tab"]:
-                print(f"Sending key: {key_type}")
-                keyboard.press(getattr(Key, key_type))
-                keyboard.release(getattr(Key, key_type))
-        self.focused_browser.browser.switch_to.active_element
+        handles = self.focused_browser.browser.window_handles
+        current_handle = self.focused_browser.browser.current_window_handle
+        handle_num = handles.index(current_handle) + 1
+        if tab_num is None:
+            tab_num = handle_num + 1
+            if tab_num > len(handles):
+                tab_num = 1
+        # https://www.techbeamers.com/switch-between-windows-selenium-python/
+        self.focused_browser.browser.switch_to_window(handles[tab_num - 1])
+        text = "__1__"
+        if self.focused_browser.get_el(xpath="//*[contains(text(),'" + text + "')]") is not None:
+            print("Found numbers!")
+        else:
+            self.show_links()
 
     def quit(self, *args):
         for attr in ["left_browser", "right_browser"]:
