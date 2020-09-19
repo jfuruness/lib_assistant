@@ -185,10 +185,12 @@ class Browser:
 #        action.move_to_element_with_offset(el, 5, 5)
 #        action.click()
 #        action.perform()
+
+        print(self.url)
         el = self.get_el(tag="body")
         for _ in range(6):
             el.send_keys(Keys.ARROW_UP)
-        if self.pdf:
+        if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["up"] * 6:
                 print(f"Sending key: {key_type}")
@@ -197,14 +199,16 @@ class Browser:
                 time.sleep(.02)
 
     def scroll_down(self):
+#        print(self.url)
+        print(self.url)
         el = self.get_el(tag="body")
- #       action = webdriver.common.action_chains.ActionChains(self.browser)
- #       action.move_to_element_with_offset(el, 5, 5)
- #       action.click()
- #       action.perform()
+        action = webdriver.common.action_chains.ActionChains(self.browser)
+        action.move_to_element_with_offset(el, 5, 5)
+        action.click()
+        action.perform()
         for _ in range(6):
             el.send_keys(Keys.ARROW_DOWN)
-        if self.pdf:
+        if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["down"] * 6:
                 print(f"Sending key: {key_type}")
@@ -215,7 +219,7 @@ class Browser:
     def page_up(self):
         print(self.url)
         self.get_el(tag="body").send_keys(Keys.PAGE_UP)
-        if self.pdf:
+        if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["page_up"]:
                 print(f"Sending key: {key_type}")
@@ -224,8 +228,9 @@ class Browser:
 
 
     def page_down(self):
+        print(self.url)
         self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
-        if self.pdf:
+        if "pdf" in self.url:
             keyboard = Controller()
             for key_type in ["page_down"]:
                 print(f"Sending key: {key_type}")

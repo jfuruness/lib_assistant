@@ -23,7 +23,10 @@ def main():
     See top of file for in depth description"""
 
     parser = ArgumentParser(description="lib_assistant, see github")
+
     parser.add_argument("--assistant", dest="assistant", default=False, action='store_true')
+    parser.add_argument("--demo", dest="demo", default=False, action='store_true')
+
     parser.add_argument("--debug", dest="debug", default=False, action='store_true')
 
     args = parser.parse_args()
@@ -34,11 +37,29 @@ def main():
         Assistant().run()
 
     if args.demo:
-        from demo.py import app
-        import webbrowser
-        webbrowser.open_new('http://127.0.0.1:3000/')
-        app.run(port=3000)
-        Assistant.run()
+        if True:
+            from multiprocessing import Process
+            p = Process(target=run_assistant)
+            p.start()
+            run_app()
+            p.join()
+        else:
+            from multiprocessing import Process
+            p = Process(target=run_app)
+            p.start()
+            run_assistant()
+            p.join()
+def run_assistant():
+    Assistant().run()
+
+def run_app():
+    from .demo import app
+    import webbrowser
+    webbrowser.open_new('http://127.0.0.1:3000/')
+    import logging
+    logging.getLogger('werkzeug').disabled=True
+    app.run(port=3000)
+
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-import logging
+from datetime import datetime
 import sys
 import time
 
@@ -105,9 +105,14 @@ class Assistant:
             "European work": self.mimir_homework,
             "European workshop": self.mimir_workshop,
             "New tab": self.new_tab,
+            "Open a new tab": self.new_tab,
             "watch the lecture": self.discord_youtube,
             "pause": self.send_k,
             "play": self.send_k,
+            "Start watching": self.send_k,
+            "Stop watching": self.send_k,
+            "started watching": self.send_k,
+            "Stopped watching": self.send_k,
         }
         self.callbacks = {k.lower(): v for k, v in self.callbacks.items()}
         with open(self.keywords_path, "w") as f:
@@ -117,12 +122,12 @@ class Assistant:
         self.left_browser = None
 
     def run(self):
-        logging.info("Running")
-#        Speech = LiveSpeech(kws=self.keywords_path)
-#        for phrase in Speech:
-        while True:
-#            speech = phrase.hypothesis().lower()
-            speech = input("Enter word here while Christina is sleeping: ")
+        print("Running")
+        Speech = LiveSpeech(kws=self.keywords_path)
+        for phrase in Speech:
+#        while True:
+            speech = phrase.hypothesis().lower()
+#            speech = input("Enter word here while Christina is sleeping: ")
             callback = self.callbacks.get(speech, False)
             if callback is not False:
                 self.execute(callback, speech)
@@ -138,12 +143,15 @@ class Assistant:
                 self.execute(None, speech)
 
     def execute(self, func, speech):
+        print(speech)
         with open("/tmp/transcript.txt", "w+") as f:
             if func is None:
                 f.write(speech)
             else:
                 f.write(f"Executing: {speech}")
-                func(speech)
+        if func is not None:
+            func(speech)
+            with open("/tmp/transcript.txt", "w+") as f:
                 f.write(f"Done executing {speech}")
             
 
@@ -367,8 +375,9 @@ class Assistant:
                 break
         tag_to_click.click()
 
+        start = datetime.now()
         # Wait until clickables change
-        while True:
+        while (start-datetime.now()).total_seconds() < 5:
             clickables = self.focused_browser.get_clickable()
             if clickables != old_clickables:
                 break
