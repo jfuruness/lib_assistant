@@ -71,21 +71,27 @@ class Browser:
                 else:
                     return self.browser.find_element_by_xpath(xpath)
         except Exception as e:
+            print(str(_id) + str(name) + str(tag) + str(xpath))
             print(e)
 
-    def get_clickable(self):
-        a_tags = self.get_el(tag="a", plural=True)
-        # https://stackoverflow.com/a/48365300/8903959
-        submit_buttons = self.get_el(xpath="//input[@type='submit']", plural=True)
-        other_buttons = self.get_el(xpath="//input[@type='button']", plural=True)
-        standard_buttons = [x for x in submit_buttons + other_buttons
-                            if (x.get_attribute("value")
-                                and "Lucky" not in x.get_attribute("value"))]
-
-        radio_buttons = self.get_el(xpath="//input[@type='radio']", plural=True)
-        clickables = a_tags + standard_buttons + radio_buttons
-        
-        return [elem for elem in clickables if self.valid_elem(elem)]
+    def get_clickable(self, tries=5):
+        try:
+            a_tags = self.get_el(tag="a", plural=True)
+            # https://stackoverflow.com/a/48365300/8903959
+            submit_buttons = self.get_el(xpath="//input[@type='submit']", plural=True)
+            other_buttons = self.get_el(xpath="//input[@type='button']", plural=True)
+            standard_buttons = [x for x in submit_buttons + other_buttons
+                                if (x.get_attribute("value")
+                                    and "Lucky" not in x.get_attribute("value"))]
+    
+            radio_buttons = self.get_el(xpath="//input[@type='radio']", plural=True)
+            clickables = a_tags + standard_buttons + radio_buttons
+            
+            return [elem for elem in clickables if self.valid_elem(elem)]
+        # Sometimes in the middle of this elements dissapear so we must retry
+        except selenium.common.exceptions.StaleElementReferenceException:
+            time.sleep(.1)
+            return self.get_clickable(tries - 1)
 
     def valid_elem(self, elem):
         if elem.is_displayed() and elem.is_enabled():
@@ -125,8 +131,8 @@ class Browser:
         # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
         javascript_str = (f"var text = document.createTextNode('{num_str}');"
                           f"arguments[{num}].before(text);")
-        if elem.get_attribute("id") == "menuPuller":
-            javascript_str = javascript_str.replace("before, after")
+#        if elem.get_attribute("id") == "menuPuller":
+#            javascript_str = javascript_str.replace("before", "after")
         return (javascript_str, elem)
 
     def remove_number(self, num, elem):
@@ -193,7 +199,7 @@ class Browser:
                 el.send_keys(Keys.ARROW_UP)
         if "pdf" in self.url:
             keyboard = Controller()
-            for key_type in ["up"] * 6:
+            for key_type in ["up"]:
                 print(f"Sending key: {key_type}")
                 keyboard.press(getattr(Key, key_type))
                 keyboard.release(getattr(Key, key_type))
@@ -202,21 +208,30 @@ class Browser:
     def scroll_down(self):
 #        print(self.url)
         print(self.url)
-        el = self.get_el(tag="body")
-        action = webdriver.common.action_chains.ActionChains(self.browser)
-        action.move_to_element_with_offset(el, 5, 5)
-        action.click()
-        action.perform()
+        # NOTE: FOR IMPROVEMENTS FOR LATER:
+        # The reason this prob doesn't work without clicking is due to iframe
+        # Simply switch out of iframe, scroll down, switch back
+        clicked = True
+        try:
+            print(self.in_iframe)
+            el = self.get_el(tag="body")
+            action = webdriver.common.action_chains.ActionChains(self.browser)
+            action.move_to_element_with_offset(el, 5, 5)
+            action.click()
+            action.perform()
+        except selenium.common.exceptions.MoveTargetOutOfBoundsException:
+            print("out of bounds, can't click for scroll")
+            clicked = False
 #        width = self.browser.get_window_size()["height"]
 #        height = self.browser.get_window_size()["width"]
 #        action = webdriver.common.action_chains.ActionChains(self.browser)
 #        action.move_by_offset(width // 2, height // 2)
 #        action.click()
 #        action.perform()
-        if "pdf" not in self.url:
+        if "pdf" not in self.url and not clicked:
             for _ in range(6):
                 el.send_keys(Keys.ARROW_DOWN)
-        if "pdf" in self.url:
+        if "pdf" in self.url or clicked:
             keyboard = Controller()
             for key_type in ["down"] * 6:
                 print(f"Sending key: {key_type}")
@@ -238,17 +253,38 @@ class Browser:
 
 
     def page_down(self):
+#        print(self.url)
         print(self.url)
-        if "pdf" not in self.url:
-
-            self.get_el(tag="body").send_keys(Keys.PAGE_DOWN)
-        if "pdf" in self.url:
+        # NOTE: FOR IMPROVEMENTS FOR LATER:
+        # The reason this prob doesn't work without clicking is due to iframe
+        # Simply switch out of iframe, scroll down, switch back
+        clicked = True
+        try:
+            print(self.in_iframe)
+            el = self.get_el(tag="body")
+            action = webdriver.common.action_chains.ActionChains(self.browser)
+            action.move_to_element_with_offset(el, 5, 5)
+            action.click()
+            action.perform()
+        except selenium.common.exceptions.MoveTargetOutOfBoundsException:
+            print("out of bounds, can't click for scroll")
+            clicked = False
+#        width = self.browser.get_window_size()["height"]
+#        height = self.browser.get_window_size()["width"]
+#        action = webdriver.common.action_chains.ActionChains(self.browser)
+#        action.move_by_offset(width // 2, height // 2)
+#        action.click()
+#        action.perform()
+        if "pdf" not in self.url and not clicked:
+            for _ in range(6):
+                el.send_keys(Keys.PAGE_DOWN)
+        if "pdf" in self.url or clicked:
             keyboard = Controller()
             for key_type in ["page_down"]:
                 print(f"Sending key: {key_type}")
                 keyboard.press(getattr(Key, key_type))
                 keyboard.release(getattr(Key, key_type))
-
+                time.sleep(.02)
 
     def right_click_tag(self, tag):
         elem = self.wait(tag, By.TAG)
@@ -293,6 +329,7 @@ class Browser:
         self.browser.switch_to_window(self.browser.window_handles[-1])
 
     def switch_to_iframe(self, iframe=True):
+        print("HERE")
         # Switches in and out of iframe
         if self.in_iframe:
             self.browser.switch_to.default_content()

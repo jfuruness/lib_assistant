@@ -13,6 +13,14 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from .browser import Browser, Side
 
+class Command:
+    def __init__(self, cmd, related_words, wrong_words, func):
+        self.cmd = cmd
+        self.related_words = related_words
+        self.wrong_words = wrong_words
+        self.func = func
+
+
 class Assistant:
     keywords_path = "/tmp/keywords.list"
     def __init__(self):
@@ -29,7 +37,6 @@ class Assistant:
         # 
 
         # move (up, on out)
-
 
         self.callbacks = {
             "Apple": self.google_mode_huskyct,
@@ -249,20 +256,25 @@ class Assistant:
             self.left_browser.open(side=Side.LEFT)
         # left browser goes to huskyct
         self.left_browser.get("https://lms.uconn.edu/")
-        # Wait for privacy agreement to pop up and click
-        self.left_browser.wait_click(_id="agree_button")
-        # click login button
-        self.left_browser.wait_click(_id="cas-login")
-        # Send in username
-        self.left_browser.wait_send_keys(_id="username",
-                                         keys="chg16109")
-        # Send in password
-        with open("/tmp/password.txt", "r") as f:
-            password = f.read().strip()
-        self.left_browser.wait_send_keys(_id="password",
-                                         keys=password)
-        # Click login
-        self.left_browser.get_el(name="submit").click()
+        try:
+            if "https://lms.uconn.edu/ultra/institution-page" in self.focused_browser.url:
+                raise Exception("Already logged in")
+            # Wait for privacy agreement to pop up and click
+            self.left_browser.wait_click(_id="agree_button")
+            # click login button
+            self.left_browser.wait_click(_id="cas-login")
+            # Send in username
+            self.left_browser.wait_send_keys(_id="username",
+                                             keys="chg16109")
+            # Send in password
+            with open("/tmp/password.txt", "r") as f:
+                password = f.read().strip()
+            self.left_browser.wait_send_keys(_id="password",
+                                             keys=password)
+            # Click login
+            self.left_browser.get_el(name="submit").click()
+        except Exception as e:
+            print("Already logged in?")
         self.focused_browser = self.left_browser
         if show_links:
             self.left_browser.get("https://lms.uconn.edu/ultra/course")
@@ -276,21 +288,24 @@ class Assistant:
             self.left_browser = Browser()
             # Open left browser and align left
             self.left_browser.open(side=Side.LEFT)
-        # left browser goes to huskyct
-        self.left_browser.get("https://class.mimir.io/login")
-        # Send in username
-        email = "christina.gorbenko@uconn.edu"
-        self.left_browser.wait_send_keys(_id="LoginForm--emailInput",
-                                         keys=email)
-        # Send in password
-        with open("/tmp/password.txt", "r") as f:
-            password = f.read().strip()
-        pword_id = "LoginForm--passwordInput"
-        self.left_browser.get_el(_id=pword_id).send_keys(password)
-        # Click login
-        submit_id = "LoginForm--submitButton"
-        self.left_browser.get_el(_id=submit_id).click()
-        time.sleep(.2)
+        try:
+            # left browser goes to huskyct
+            self.left_browser.get("https://class.mimir.io/login")
+            # Send in username
+            email = "christina.gorbenko@uconn.edu"
+            self.left_browser.wait_send_keys(_id="LoginForm--emailInput",
+                                             keys=email)
+            # Send in password
+            with open("/tmp/password.txt", "r") as f:
+                password = f.read().strip()
+            pword_id = "LoginForm--passwordInput"
+            self.left_browser.get_el(_id=pword_id).send_keys(password)
+            # Click login
+            submit_id = "LoginForm--submitButton"
+            self.left_browser.get_el(_id=submit_id).click()
+            time.sleep(.2)
+        except Exception as e:
+            print("Already logged in?")
         url = ("https://class.mimir.io/courses/"
                "01268b2b-9903-442e-8310-9bc462c41929")
         self.left_browser.wait("Dashboard--courseworkCard-0", By.ID)
@@ -352,6 +367,7 @@ class Assistant:
         elems = []
         # Get all links within the page
         for i, tag in enumerate(self.focused_browser.get_clickable()):
+            print(i)
             # Add a number next to all of the links
             javascript_str, elem = self.focused_browser.add_number(i, tag)
             javascript_strs.append(javascript_str)
@@ -376,12 +392,38 @@ class Assistant:
         old_clickables = self.focused_browser.get_clickable()
 
         # Get all links within the page
-        for i, tag in enumerate(old_clickables):
-            # Add a number next to all of the links
-            if i == number:
-                tag_to_click = tag
-                break
-        tag_to_click.click()
+#        for i, tag in enumerate(old_clickables):
+#            try:
+#                print(tag.text)
+#                print(tag.get_attribute("innerHTML"))
+#            except Exception as e:
+#                print(e)
+#            # Add a number next to all of the links
+#            if i == number:
+#                tag_to_click = tag
+#                break
+#        tag_to_click.click()
+#        old_clickables = self.focused_browser.get_clickable()
+        num_str = self.focused_browser._format_number(number)
+        xpath = f"//*[contains(., '{num_str}')]"
+        """function getElementByXpath(path) {
+  return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+}
+
+getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
+        # childNodes - get the one directly after the one whos textContent is the number.
+#        xpath='//*[@id="course-list-course-_80636_1"]/div[2]/preceding::text()'
+        #parent = self.focused_browser.get_el(xpath=xpath, plural=True)[-1]
+        javascript_str = ("""var mylist = document.evaluate"""
+                          f"""("//*[contains(., '{num_str}')]", document,"""
+                          """null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);"""
+                          """var mynode = mylist.snapshotItem(mylist.snapshotLength - 1);"""
+                          """for (index = 0; index < mynode.childNodes.length; index++) {"""
+                          f"""if(mynode.childNodes[index].nodeValue == "{num_str}")"""
+                          """{mynode.childNodes[index + 1].click();"""
+                          """break;"""
+                          """}}""")
+        self.left_browser.browser.execute_script(javascript_str)
 
         # Wait until clickables change
         for i in range(10):
@@ -391,7 +433,6 @@ class Assistant:
             else:
                 print("Waiting for change")
                 time.sleep(.2)
-        
         self.show_links()
 
     def search(self, speech):
