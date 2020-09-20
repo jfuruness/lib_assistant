@@ -143,12 +143,16 @@ class Assistant:
                            "tap number thirteen",
                            "tap number one",
                            "scroll down",
+                           "scroll down",
                            "tap number fifteen",
                            "tap number seven",
                            "tap number four",
                            "tap number five",
                            "scroll down",
-                           "tap number eleven"]
+                           "scroll down",
+                           "tap number eleven",
+                           "scroll down",
+                           "scroll down"]
             test2 = ["search hello world",
                            "show numbers",
                            "page down", "page down", "page down", "page down", "page down", "tap number thirty six"]
@@ -157,7 +161,7 @@ class Assistant:
             test5 = ["search amazon vitamins", "scroll down", "go to thirty five hundred", "shut down", "go to school"]
             test6 = ["watch the lecture"]
             all_tests = test1 + test2 + test3 + test4 + test5 + test6 + ["quit"]
-            for speech in all_tests:
+            for speech in test4 + ["quit"]:
                 self.deal_with_speech(speech.lower())
             input("!")
             while True:
@@ -419,7 +423,6 @@ class Assistant:
         elems = []
         # Get all links within the page
         for i, tag in enumerate(self.focused_browser.get_clickable()):
-            print(i)
             # Add a number next to all of the links
             javascript_str, elem = self.focused_browser.add_number(i, tag)
             javascript_strs.append(javascript_str)

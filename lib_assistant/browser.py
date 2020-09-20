@@ -261,12 +261,35 @@ class Browser:
         # NOTE: FOR IMPROVEMENTS FOR LATER:
         # The reason this prob doesn't work without clicking is due to iframe
         # Simply switch out of iframe, scroll down, switch back
-        clicked = True
+#        self.attempt_to_click()
+
+        if "pdf" not in self.url:
+            print("trying javascript scroll")
+            self.javascript_scroll(key, page)
+            if "--test" in sys.argv:
+                time.sleep(3)
+
+        if "pdf" in self.url:
+            # Must do twice
+            self.attempt_to_click()
+            print("Trying keys to body scroll")
+    #        self.send_keys_to_body_scroll(key, page)
+    #        if "--test" in sys.argv:
+    #            time.sleep(3)
+            print("Trying type scroll")
+            self.type_scroll(key, page)
+            if "--test" in sys.argv:
+                time.sleep(3)
+
+    def attempt_to_click(self):
         try:
             print(self.in_iframe)
             el = self.get_el(tag="body")
             action = webdriver.common.action_chains.ActionChains(self.browser)
             action = action.move_to_element_with_offset(el, 5, 5)
+
+            action = action.click()
+            action = action.click()
             action = action.click()
             action.perform()
         except selenium.common.exceptions.MoveTargetOutOfBoundsException:
@@ -277,63 +300,79 @@ class Browser:
                 if el is None:
                     raise selenium.common.exceptions.MoveTargetOutOfBoundsException
                 action = webdriver.common.action_chains.ActionChains(self.browser)
-                action = action.move_to_element_with_offset(el, -5, -5)
+                action = action.move_to_element_with_offset(el, 5, 5)
+
+                action = action.click()
+                action = action.click()
                 action = action.click()
                 action.perform()
-                time.sleep(5)
             except:
                 print("out of bounds, can't click for scroll")
                 clicked = False
-        if "google" in self.url:
-            clicked = True
-#        width = self.browser.get_window_size()["height"]
-#        height = self.browser.get_window_size()["width"]
-#        action = webdriver.common.action_chains.ActionChains(self.browser)
-#        action.move_by_offset(width // 2, height // 2)
-#        action.click()
-#        action.perform()
-        if "pdf" not in self.url and not clicked:
-            if el is None:
-                if key == "down":
-                    if page:
-                        move = 500
-                    else:
-                        move = 200
-                elif key =="up":
-                    if page:
-                        move = -500
-                    else:
-                        move = -200
-                print("Executing window javascript scroll")
-                self.browser.execute_script("window.scroll({top:" + f"{move}" + ",left:0,behavior: 'smooth'})")
+#        if "google" in self.url:
+#            clicked = True
+        try:
+            width = self.browser.get_window_size()["height"]
+            height = self.browser.get_window_size()["width"]
+            action = webdriver.common.action_chains.ActionChains(self.browser)
+            action = action.move_by_offset(width // 2, height // 2)
+
+            action = action.click()
+            action = action.click()
+            action = action.click()
+            action.perform()
+        except selenium.common.exceptions.MoveTargetOutOfBoundsException:
+            print("out of bounds")
+        print(self.browser.current_window_handle)
+        print(self.browser.window_handles)
+
+    def javascript_scroll(self, key, page):
+        if key == "down":
+            if page:
+                move = 500
             else:
-                for _ in range(6):
-                    if key == "down":
-                        if page:
-                            send = Keys.PAGE_DOWN
-                        else:
-                            send = Keys.ARROW_DOWN
-                    elif key == "up":
-                        if page:
-                            send = Keys.PAGE_UP
-                        else:
-                            send = Keys.ARROW_UP
-                    el.send_keys(Keys.ARROW_UP)
-        if "pdf" in self.url or clicked:
-            keyboard = Controller()
-            if key=="down" and page:
-                key_types = "page_down"
-            elif key=="down":
-                key_types = "down"
-            elif key=="up" and page:
-                key_types = "page_up"
+                move = 200
+        elif key =="up":
+            if page:
+                move = -500
             else:
-                key_types = "up"
-            for key_type in [key_types] * 6:
-                print(f"Sending key: {key_type}")
-                keyboard.press(getattr(Key, key_type))
-                keyboard.release(getattr(Key, key_type))
-                time.sleep(.2)
+                move = -200
+        print("Executing window javascript scroll")
+        #self.browser.execute_script("window.scroll(" + f"{move},0)")
+        self.browser.execute_script("window.scroll({top:" + f"window.pageYOffset + {move}" + ",left:0,behavior: 'smooth'})")
+        #self.browser.execute_script("scroll({top:" + f"{move}" + ",left:0,behavior: 'smooth'})")
+
+
+    def send_keys_to_body_scroll(self, key, page):
+        el = self.get_el(tag="body")
+        for _ in range(6):
+            if key == "down":
+                if page:
+                    send = Keys.PAGE_DOWN
+                else:
+                    send = Keys.ARROW_DOWN
+            elif key == "up":
+                if page:
+                    send = Keys.PAGE_UP
+                else:
+                    send = Keys.ARROW_UP
+            el.send_keys(send)
+
+    def type_scroll(self, key, page):
+        keyboard = Controller()
+        if key=="down" and page:
+            key_types = "page_down"
+        elif key=="down":
+            key_types = "down"
+        elif key=="up" and page:
+            key_types = "page_up"
+        else:
+            key_types = "up"
+        for key_type in [key_types] * 6:
+            print(f"Sending key: {key_type}")
+            keyboard.press(getattr(Key, key_type))
+            keyboard.release(getattr(Key, key_type))
+            time.sleep(.2)
 
     def page_up(self):
         self.scroll("up", page=True)

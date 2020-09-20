@@ -13,7 +13,7 @@ setup(
     install_requires=[
         'pocketsphinx',
         'pynput',
-        'selenium'
+        'selenium==3.141.0'
     ],
     classifiers=[
         'Environment :: Console',
