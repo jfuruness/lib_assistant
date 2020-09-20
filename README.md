@@ -18,7 +18,7 @@
         * Either by dragging (could use toes?) Or by options of text box?
 
 
-
+    * Should be able to remove old numbers in the text
 
     * More specific actions
         * Go straight to 3500

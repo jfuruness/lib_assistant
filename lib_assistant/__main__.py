@@ -28,6 +28,8 @@ def main():
     parser.add_argument("--demo", dest="demo", default=False, action='store_true')
 
     parser.add_argument("--debug", dest="debug", default=False, action='store_true')
+    parser.add_argument("--test", dest="test", default=False, action='store_true')
+
 
     args = parser.parse_args()
     if args.debug:

@@ -125,6 +125,7 @@ class Assistant:
             "Stop watching": self.send_k,
             "started watching": self.send_k,
             "Stopped watching": self.send_k,
+            "refocus": self.refocus,
         }
         self.callbacks = {k.lower(): v for k, v in self.callbacks.items()}
         with open(self.keywords_path, "w") as f:
@@ -135,31 +136,65 @@ class Assistant:
 
     def run(self):
         print("Running")
-        Speech = LiveSpeech(kws=self.keywords_path)
-        for phrase in Speech:
-#        while True:
-            speech = phrase.hypothesis().lower()
-#            speech = input("Enter word here while Christina is sleeping: ")
-            callback = self.callbacks.get(speech, False)
-            if callback is not False:
-                self.execute(callback, speech)
-            elif "number" in speech:
-                self.execute(self.click, speech)
-            elif "search" in speech or "section" in speech or "said" in speech:
-                self.execute(self.search, speech)
-            elif "european homework" in speech or "european work " in speech:
-                self.execute(self.mimir_homework, speech)
-            elif "european workshop" in speech:
-                self.execute(self.mimir_workshop,speech)
-            else:
-                self.execute(None, speech)
+        if "--test" in sys.argv:
+            test1 = ["go to school",
+                           "show numbers",
+                           "show numbers",
+                           "tap number thirteen",
+                           "tap number one",
+                           "scroll down",
+                           "tap number fifteen",
+                           "tap number seven",
+                           "tap number four",
+                           "tap number five",
+                           "scroll down",
+                           "tap number eleven"]
+            test2 = ["search hello world",
+                           "show numbers",
+                           "page down", "page down", "page down", "page down", "page down", "tap number thirty six"]
+            test3 = ["go to school", "scroll down"]
+            test4 = ["european homework one", "scroll down", "scroll down", "scroll down", "switch tab"]
+            test5 = ["search amazon vitamins", "scroll down", "go to thirty five hundred", "shut down", "go to school"]
+            test6 = ["watch the lecture"]
+            all_tests = test1 + test2 + test3 + test4 + test5 + test6 + ["quit"]
+            for speech in all_tests:
+                self.deal_with_speech(speech.lower())
+            input("!")
+            while True:
+                self.deal_with_speech(input("ENTER SPEECH: ").lower())
+        elif "--quiet" in sys.argv:
+            while True:
+                self.deal_with_speech(input("ENTER SPEECH: ").lower())
+        else:
+            Speech = LiveSpeech(kws=self.keywords_path)
+            for phrase in Speech:
+                self.deal_with_speech(phrase.hypothesis().lower())
+
+    def refocus(self):
+        self.focused_browser.refocus()
+
+    def deal_with_speech(self, speech):
+        callback = self.callbacks.get(speech, False)
+        if callback is not False:
+            self.execute(callback, speech)
+        elif "number" in speech:
+            self.execute(self.click, speech)
+        elif "search" in speech or "section" in speech or "said" in speech:
+            self.execute(self.search, speech)
+        elif "european homework" in speech or "european work " in speech:
+            self.execute(self.mimir_homework, speech)
+        elif "european workshop" in speech:
+            self.execute(self.mimir_workshop,speech)
+        else:
+            self.execute(None, speech)
 
     def execute(self, func, speech):
-        print(speech)
         with open("/tmp/transcript.txt", "w+") as f:
             if func is None:
+                print(speech)
                 f.write(speech)
             else:
+                print(f"Executing: {speech}")
                 f.write(f"Executing: {speech}")
         if func is not None:
             try:
@@ -167,6 +202,7 @@ class Assistant:
             except Exception as e:
                 print(e)
             with open("/tmp/transcript.txt", "w+") as f:
+                print(f"Done executing {speech}")
                 f.write(f"Done executing {speech}")
             
 
@@ -174,7 +210,7 @@ class Assistant:
         self._open_google()
 
     def new_tab(self, *args):
-        self.left_browser.open_new_tab()
+        self.focused_browser.open_new_tab()
 
     def google_mode_mimir(self, *args):
         """Opens up mimir with google"""
@@ -254,10 +290,13 @@ class Assistant:
             self.left_browser = Browser()
             # Open left browser and align left
             self.left_browser.open(side=Side.LEFT)
+        else:
+            self.focus_left()
         # left browser goes to huskyct
         self.left_browser.get("https://lms.uconn.edu/")
         try:
-            if "https://lms.uconn.edu/ultra/institution-page" in self.focused_browser.url:
+            if "https://lms.uconn.edu/ultra/institution-page" in self.left_browser.url:
+                print("NO")
                 raise Exception("Already logged in")
             # Wait for privacy agreement to pop up and click
             self.left_browser.wait_click(_id="agree_button")
@@ -274,6 +313,7 @@ class Assistant:
             # Click login
             self.left_browser.get_el(name="submit").click()
         except Exception as e:
+            print(e)
             print("Already logged in?")
         self.focused_browser = self.left_browser
         if show_links:
@@ -288,6 +328,8 @@ class Assistant:
             self.left_browser = Browser()
             # Open left browser and align left
             self.left_browser.open(side=Side.LEFT)
+        else:
+            self.focus_left()
         try:
             # left browser goes to huskyct
             self.left_browser.get("https://class.mimir.io/login")
@@ -321,6 +363,8 @@ class Assistant:
             self.left_browser = Browser()
             # Open left browser and align left
             self.left_browser.open(side=Side.LEFT)
+        else:
+            self.focus_left()
         # left browser goes to huskyct
         self.left_browser.get("https://discord.com/login")
         email = self.left_browser.get_el(name="email")
@@ -363,6 +407,14 @@ class Assistant:
     def show_links(self, side=None):
         # https://stackoverflow.com/a/21898701/8903959
         self.focused_browser.switch_to_iframe()
+
+        # https://stackoverflow.com/a/24595952
+        removal_javascript_str = ("""var ele = document.getElementsByName("furuness");"""
+                                  """for(var i=ele.length-1;i>=0;i--)"""
+                                  """{ele[i].parentNode.removeChild(ele[i]);}""")
+        self.focused_browser.browser.execute_script(removal_javascript_str)
+
+
         javascript_strs = []
         elems = []
         # Get all links within the page
@@ -423,22 +475,48 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
                           """{mynode.childNodes[index + 1].click();"""
                           """break;"""
                           """}}""")
-        self.left_browser.browser.execute_script(javascript_str)
+        javascript_str = ("""var mylist = document.evaluate"""
+                          f"""("//*[contains(., '{num_str}')]", document,"""
+                          """null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);"""
+                          """var mynode = mylist.snapshotItem(mylist.snapshotLength - 1);"""
+                          """for (index = 0; index < mynode.childNodes.length; index++) {"""
+                          f"""if(mynode.childNodes[index].nodeValue == "{num_str}")"""
+                          """{mynode.childNodes[index + 1].click();"""
+                          """break;"""
+                          """}}""")
+        javascript_str = (f"""document.evaluate("//*[@id='furuness_{num_str}']","""
+                          """ document, null, XPathResult.FIRST_ORDERED_NODE_TYPE,"""
+                          """ null).singleNodeValue.nextSibling.click();""")
+        try:
+            self.focused_browser.browser.execute_script(javascript_str)
+        except selenium.common.exceptions.JavascriptException as e:
+            # This is a button
+            if "nextSibling" in str(e):
+                javascript_str = (f"""document.evaluate("//*[@id='furuness_{num_str}']","""
+                          """ document, null, XPathResult.FIRST_ORDERED_NODE_TYPE,"""
+                          """ null).singleNodeValue.nextSibling.click();""")
+            print(e)
 
+        # Sometimes it opens in a new tab, we must refocus
+        self.focused_browser.switch_to_iframe()
         # Wait until clickables change
-        for i in range(10):
+        for i in range(3):
             clickables = self.focused_browser.get_clickable()
             if clickables != old_clickables:
                 break
             else:
-                print("Waiting for change")
+                # NOTE: just check if it was a radio button pressed
+                # OR store that radio buttons exist on the page when adding numbers
+                # Just a simple bool. And if radios on page, wait a lot less if at all
+                print("Waiting for change - remind me and I'll fix this later")
                 time.sleep(.2)
         self.show_links()
 
     def search(self, speech):
         if self.right_browser is None:
             self._open_google()
-        self.focused_browser = self.right_browser
+        else:
+            self.focus_right()
         self.right_browser.get("https://www.google.com/")
         speech = speech.replace("search", "").replace("section", "").replace("said", "").strip()
         time.sleep(.1)
@@ -449,6 +527,7 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
         search_bar.send_keys(speech)
         time.sleep(.01)
         search_bar.send_keys(Keys.ENTER)
+        self.show_links()
 
     def text2int(self, textnum, numwords={}):
         try:
@@ -489,7 +568,7 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
         for browser in [self.focused_browser]:#, self.right_browser]:
             try:
                 browser.browser.switch_to.alert.accept()
-                browser.browser.switch_to.default_content()
+                browser.switch_to_iframe()
             except Exception as e:
                 print(e)
 
@@ -517,9 +596,11 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
 
     def focus_left(self, *args):
         self.focused_browser = self.left_browser
+        self.focused_browser.refocus()
 
     def focus_right(self, *args):
         self.focused_browser = self.right_browser
+        self.focused_browser.refocus()
 
     def download_mimir_pdf(self, *args):
         pdf_url = "blank"
@@ -553,6 +634,7 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
         for attr in ["left_browser", "right_browser"]:
             try:
                 getattr(self, attr).browser.quit()
+                setattr(self, attr, None)
             except AttributeError as e:
                 pass
 

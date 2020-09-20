@@ -1,3 +1,4 @@
+import sys
 from enum import Enum
 from os.path import expanduser
 import os
@@ -107,7 +108,32 @@ class Browser:
         else:
             return self.add_number_to_elem(num, elem)
 
-    def add_number_to_radio(self, num, button):
+    def add_number_to_radio(self, num, elem):
+        button = elem
+
+
+        # https://stackoverflow.com/a/18079918
+        # https://www.edureka.co/community/4032/how-get-next-sibling-element-using-xpath-and-selenium-for-java
+#        parent_elem = elem.find_element_by_xpath("..")
+        num_str = self._format_number(num)
+        # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
+        javascript_str = (f"var iii = document.createElement('i');"
+                          f"var text = document.createTextNode('{num_str}');"
+                          "iii.appendChild(text);"
+                          f"iii.id = 'furuness_{num_str}';"
+                          "iii.setAttribute('name','furuness');"
+                          "iii.style.color='blue';"
+                          "iii.style.backgroundColor='green';"
+                          f"arguments[{num}].before(iii);")
+#                          f"arguments[{num}].id='furuness_clickable_{num}'")
+#        if elem.get_attribute("id") == "menuPuller":
+#            javascript_str = javascript_str.replace("before", "after")
+        return (javascript_str, elem)
+
+
+
+
+
         # https://stackoverflow.com/a/18079918
         # https://www.edureka.co/community/4032/how-get-next-sibling-element-using-xpath-and-selenium-for-java
 #        parent_elem = button.find_element_by_xpath("..")
@@ -118,7 +144,31 @@ class Browser:
         # https://stackoverflow.com/a/14052682
         return javascript_str, button
 
-    def add_number_to_button(self, num, button):
+    def add_number_to_button(self, num, elem):
+        button = elem
+
+
+        # https://stackoverflow.com/a/18079918
+        # https://www.edureka.co/community/4032/how-get-next-sibling-element-using-xpath-and-selenium-for-java
+#        parent_elem = elem.find_element_by_xpath("..")
+        num_str = self._format_number(num)
+        # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
+        javascript_str = (f"var iii = document.createElement('i');"
+                          f"var text = document.createTextNode('{num_str}');"
+                          "iii.appendChild(text);"
+                          f"iii.id = 'furuness_{num_str}';"
+                          "iii.setAttribute('name','furuness');"
+                          "iii.style.color='blue';"
+                          "iii.style.backgroundColor='green';"
+                          f"arguments[{num}].before(iii);")
+#                          f"arguments[{num}].id='furuness_clickable_{num}'")
+#        if elem.get_attribute("id") == "menuPuller":
+#            javascript_str = javascript_str.replace("before", "after")
+        return (javascript_str, elem)
+
+
+
+
         button_value = button.get_attribute("value")
         num_str = f"{self._format_number(num)}{button_value}"
         return f"arguments[{num}].value = '{num_str}';", button
@@ -129,8 +179,15 @@ class Browser:
 #        parent_elem = elem.find_element_by_xpath("..")
         num_str = self._format_number(num)
         # https://www.quora.com/How-do-I-add-an-HTML-element-using-Selenium-WebDriver
-        javascript_str = (f"var text = document.createTextNode('{num_str}');"
-                          f"arguments[{num}].before(text);")
+        javascript_str = (f"var iii = document.createElement('i');"
+                          f"var text = document.createTextNode('{num_str}');"
+                          "iii.appendChild(text);"
+                          f"iii.id = 'furuness_{num_str}';"
+                          "iii.setAttribute('name','furuness');"
+                          "iii.style.color='blue';"
+                          "iii.style.backgroundColor='green';"
+                          f"arguments[{num}].before(iii);")
+#                          f"arguments[{num}].id='furuness_clickable_{num}'")
 #        if elem.get_attribute("id") == "menuPuller":
 #            javascript_str = javascript_str.replace("before", "after")
         return (javascript_str, elem)
@@ -185,28 +242,21 @@ class Browser:
         utils.run_cmds(cmd)
 
     def scroll_up(self):
-        # https://www.reddit.com/r/learnpython/comments/6yrcee/use_selenium_to_repeatedly_send_arrowuprightdown/
-#        el = self.get_el(tag="body")
-#        action = webdriver.common.action_chains.ActionChains(self.browser)
-#        action.move_to_element_with_offset(el, 5, 5)
-#        action.click()
-#        action.perform()
+        self.scroll("up")
 
-        print(self.url)
-        el = self.get_el(tag="body")
-        if "pdf" not in self.url:
-            for _ in range(6):
-                el.send_keys(Keys.ARROW_UP)
-        if "pdf" in self.url:
-            keyboard = Controller()
-            for key_type in ["up"]:
-                print(f"Sending key: {key_type}")
-                keyboard.press(getattr(Key, key_type))
-                keyboard.release(getattr(Key, key_type))
-                time.sleep(.02)
+    def refocus(self):
+        handle = self.browser.current_window_handle
+        self.open_new_tab()
+        self.browser.close()
+        self.browser.switch_to.window(handle)
 
     def scroll_down(self):
+        self.scroll("down")
+
+    def scroll(self, key, page=False):
 #        print(self.url)
+        # NOTE: Later potentially check which method worked based on scroll height of element!
+        # https://stackoverflow.com/a/24797425
         print(self.url)
         # NOTE: FOR IMPROVEMENTS FOR LATER:
         # The reason this prob doesn't work without clicking is due to iframe
@@ -216,12 +266,26 @@ class Browser:
             print(self.in_iframe)
             el = self.get_el(tag="body")
             action = webdriver.common.action_chains.ActionChains(self.browser)
-            action.move_to_element_with_offset(el, 5, 5)
-            action.click()
+            action = action.move_to_element_with_offset(el, 5, 5)
+            action = action.click()
             action.perform()
         except selenium.common.exceptions.MoveTargetOutOfBoundsException:
             print("out of bounds, can't click for scroll")
-            clicked = False
+            try:
+                print(self.in_iframe)
+                el = self.get_el(tag="iframe")
+                if el is None:
+                    raise selenium.common.exceptions.MoveTargetOutOfBoundsException
+                action = webdriver.common.action_chains.ActionChains(self.browser)
+                action = action.move_to_element_with_offset(el, -5, -5)
+                action = action.click()
+                action.perform()
+                time.sleep(5)
+            except:
+                print("out of bounds, can't click for scroll")
+                clicked = False
+        if "google" in self.url:
+            clicked = True
 #        width = self.browser.get_window_size()["height"]
 #        height = self.browser.get_window_size()["width"]
 #        action = webdriver.common.action_chains.ActionChains(self.browser)
@@ -229,62 +293,53 @@ class Browser:
 #        action.click()
 #        action.perform()
         if "pdf" not in self.url and not clicked:
-            for _ in range(6):
-                el.send_keys(Keys.ARROW_DOWN)
+            if el is None:
+                if key == "down":
+                    if page:
+                        move = 500
+                    else:
+                        move = 200
+                elif key =="up":
+                    if page:
+                        move = -500
+                    else:
+                        move = -200
+                print("Executing window javascript scroll")
+                self.browser.execute_script("window.scroll({top:" + f"{move}" + ",left:0,behavior: 'smooth'})")
+            else:
+                for _ in range(6):
+                    if key == "down":
+                        if page:
+                            send = Keys.PAGE_DOWN
+                        else:
+                            send = Keys.ARROW_DOWN
+                    elif key == "up":
+                        if page:
+                            send = Keys.PAGE_UP
+                        else:
+                            send = Keys.ARROW_UP
+                    el.send_keys(Keys.ARROW_UP)
         if "pdf" in self.url or clicked:
             keyboard = Controller()
-            for key_type in ["down"] * 6:
+            if key=="down" and page:
+                key_types = "page_down"
+            elif key=="down":
+                key_types = "down"
+            elif key=="up" and page:
+                key_types = "page_up"
+            else:
+                key_types = "up"
+            for key_type in [key_types] * 6:
                 print(f"Sending key: {key_type}")
                 keyboard.press(getattr(Key, key_type))
                 keyboard.release(getattr(Key, key_type))
-                time.sleep(.02)
+                time.sleep(.2)
 
     def page_up(self):
-        print(self.url)
-        if "pdf" not in self.url:
-
-            self.get_el(tag="body").send_keys(Keys.PAGE_UP)
-        if "pdf" in self.url:
-            keyboard = Controller()
-            for key_type in ["page_up"]:
-                print(f"Sending key: {key_type}")
-                keyboard.press(getattr(Key, key_type))
-                keyboard.release(getattr(Key, key_type))
-
+        self.scroll("up", page=True)
 
     def page_down(self):
-#        print(self.url)
-        print(self.url)
-        # NOTE: FOR IMPROVEMENTS FOR LATER:
-        # The reason this prob doesn't work without clicking is due to iframe
-        # Simply switch out of iframe, scroll down, switch back
-        clicked = True
-        try:
-            print(self.in_iframe)
-            el = self.get_el(tag="body")
-            action = webdriver.common.action_chains.ActionChains(self.browser)
-            action.move_to_element_with_offset(el, 5, 5)
-            action.click()
-            action.perform()
-        except selenium.common.exceptions.MoveTargetOutOfBoundsException:
-            print("out of bounds, can't click for scroll")
-            clicked = False
-#        width = self.browser.get_window_size()["height"]
-#        height = self.browser.get_window_size()["width"]
-#        action = webdriver.common.action_chains.ActionChains(self.browser)
-#        action.move_by_offset(width // 2, height // 2)
-#        action.click()
-#        action.perform()
-        if "pdf" not in self.url and not clicked:
-            for _ in range(6):
-                el.send_keys(Keys.PAGE_DOWN)
-        if "pdf" in self.url or clicked:
-            keyboard = Controller()
-            for key_type in ["page_down"]:
-                print(f"Sending key: {key_type}")
-                keyboard.press(getattr(Key, key_type))
-                keyboard.release(getattr(Key, key_type))
-                time.sleep(.02)
+        self.scroll("down", page=True)
 
     def right_click_tag(self, tag):
         elem = self.wait(tag, By.TAG)
@@ -326,7 +381,7 @@ class Browser:
 
     def open_new_tab(self, url=""):
         self.browser.execute_script(f"window.open('{url}');")
-        self.browser.switch_to_window(self.browser.window_handles[-1])
+        self.browser.switch_to.window(self.browser.window_handles[-1])
 
     def switch_to_iframe(self, iframe=True):
         print("HERE")
