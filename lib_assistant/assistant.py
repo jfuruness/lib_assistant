@@ -161,7 +161,7 @@ class Assistant:
             test5 = ["search amazon vitamins", "scroll down", "go to thirty five hundred", "shut down", "go to school"]
             test6 = ["watch the lecture"]
             all_tests = test1 + test2 + test3 + test4 + test5 + test6 + ["quit"]
-            for speech in test4 + ["quit"]:
+            for speech in all_tests:
                 self.deal_with_speech(speech.lower())
             input("!")
             while True:
@@ -356,7 +356,6 @@ class Assistant:
                "01268b2b-9903-442e-8310-9bc462c41929")
         self.left_browser.wait("Dashboard--courseworkCard-0", By.ID)
         self.focused_browser = self.left_browser
-        print("Here")
         if show_links:
             self.left_browser.get(url)
             self.left_browser.wait("Coursework--collapseLive", By.ID)
@@ -400,7 +399,6 @@ class Assistant:
             except selenium.common.exceptions.StaleElementReferenceException:
                 continue
 
-        print(last_yt_link)
         self.focused_browser = self.left_browser
         self.focused_browser.open_new_tab(url=last_yt_link)
 
@@ -612,8 +610,6 @@ getElementByXpath("//*[contains(., '__13__')]").childNodes;"""
             pdf_url = pdf.get_attribute("src")
             time.sleep(.1)
         self.focused_browser.open_new_tab(url=pdf_url)
-        print(self.focused_browser.browser.current_window_handle)
-        print(self.focused_browser.browser.window_handles)
 
     def switch_tab(self, speech, *args):
         tab_num = self.get_num(speech)

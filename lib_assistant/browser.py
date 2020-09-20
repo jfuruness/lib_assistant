@@ -31,7 +31,6 @@ class Browser:
 
     def open(self, side=None):
         width, height = self._get_dims()
-        print(side)
         if side in [Side.LEFT, Side.RIGHT]:
             # Get chrome options
             opts = Options()
@@ -249,6 +248,8 @@ class Browser:
         self.open_new_tab()
         self.browser.close()
         self.browser.switch_to.window(handle)
+        self.switch_to_iframe()
+        self.attempt_to_click()
 
     def scroll_down(self):
         self.scroll("down")
@@ -257,7 +258,6 @@ class Browser:
 #        print(self.url)
         # NOTE: Later potentially check which method worked based on scroll height of element!
         # https://stackoverflow.com/a/24797425
-        print(self.url)
         # NOTE: FOR IMPROVEMENTS FOR LATER:
         # The reason this prob doesn't work without clicking is due to iframe
         # Simply switch out of iframe, scroll down, switch back
@@ -272,7 +272,7 @@ class Browser:
         if "pdf" in self.url:
             # Must do twice
             self.attempt_to_click()
-            print("Trying keys to body scroll")
+#            print("Trying keys to body scroll")
     #        self.send_keys_to_body_scroll(key, page)
     #        if "--test" in sys.argv:
     #            time.sleep(3)
@@ -283,7 +283,6 @@ class Browser:
 
     def attempt_to_click(self):
         try:
-            print(self.in_iframe)
             el = self.get_el(tag="body")
             action = webdriver.common.action_chains.ActionChains(self.browser)
             action = action.move_to_element_with_offset(el, 5, 5)
@@ -295,7 +294,6 @@ class Browser:
         except selenium.common.exceptions.MoveTargetOutOfBoundsException:
             print("out of bounds, can't click for scroll")
             try:
-                print(self.in_iframe)
                 el = self.get_el(tag="iframe")
                 if el is None:
                     raise selenium.common.exceptions.MoveTargetOutOfBoundsException
@@ -323,10 +321,8 @@ class Browser:
             action.perform()
         except selenium.common.exceptions.MoveTargetOutOfBoundsException:
             print("out of bounds")
-        print(self.browser.current_window_handle)
-        print(self.browser.window_handles)
 
-    def javascript_scroll(self, key, page):
+    def javascript_scroll(self, key, page, retry=True):
         if key == "down":
             if page:
                 move = 500
@@ -338,10 +334,15 @@ class Browser:
             else:
                 move = -200
         print("Executing window javascript scroll")
+#        scroll_hieght = self.browser.execute_script("return window.pageYOffset")
         #self.browser.execute_script("window.scroll(" + f"{move},0)")
         self.browser.execute_script("window.scroll({top:" + f"window.pageYOffset + {move}" + ",left:0,behavior: 'smooth'})")
         #self.browser.execute_script("scroll({top:" + f"{move}" + ",left:0,behavior: 'smooth'})")
-
+#        new_scroll_height = self.browser.execute_script("return window.pageYOffset")
+#        if scroll_hieght == new_scroll_height and retry:
+#            print("Scroll failed, attempting again")
+#            self.attempt_to_click()
+#            self.javascript_scroll(key, page, retry=False)
 
     def send_keys_to_body_scroll(self, key, page):
         el = self.get_el(tag="body")
@@ -369,7 +370,6 @@ class Browser:
         else:
             key_types = "up"
         for key_type in [key_types] * 6:
-            print(f"Sending key: {key_type}")
             keyboard.press(getattr(Key, key_type))
             keyboard.release(getattr(Key, key_type))
             time.sleep(.2)
@@ -423,7 +423,6 @@ class Browser:
         self.browser.switch_to.window(self.browser.window_handles[-1])
 
     def switch_to_iframe(self, iframe=True):
-        print("HERE")
         # Switches in and out of iframe
         if self.in_iframe:
             self.browser.switch_to.default_content()
