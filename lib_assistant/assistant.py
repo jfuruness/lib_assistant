@@ -112,6 +112,7 @@ class Assistant:
         """
 
         for func in [self.go_to_blackboard,
+                     self.go_to_math,
                      self.go_to_software_engineering,
                      self.go_to_ethics,
                      self.go_to_cyber_security,
@@ -218,3 +219,4 @@ class Assistant:
         browser.get(base_url + f"{course_id}/cl/outline")
         browser.switch_to_iframe()
         browser.wait_click(_id="menuPuller")
+        browser.show_links()
