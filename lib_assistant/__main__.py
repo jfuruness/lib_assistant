@@ -30,8 +30,8 @@ def main():
         parser.add_argument(f"--{arg}", default=False, action='store_true')
 
     args = parser.parse_args()
-    if args.debug:
-        utils.config_logging(DEBUG if args.debug else logging.info, "assistant")
+    
+    utils.config_logging(DEBUG if args.debug else logging.INFO, "assistant")
 
     if args.run:
         Assistant().run(args.test)

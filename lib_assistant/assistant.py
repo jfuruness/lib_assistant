@@ -20,7 +20,9 @@ __maintainer__ = "Justin Furuness"
 __email__ = "jfuruness@gmail.com"
 __status__ = "Development"
 
+import logging
 import time
+import sys
 
 from lib_browser import Convenience_Browser, Side
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
@@ -32,7 +34,8 @@ def website_permutations(ways_to_call_website: list) -> list:
 
     commands = []
     for way_to_call_website in ways_to_call_website:
-        for prepend in ["", "go to", "open"]:
+        commands.append(way_to_call_website)
+        for prepend in ["go to", "open"]:
             commands.append(prepend + " " + way_to_call_website)
     return commands
 
@@ -64,9 +67,18 @@ class Assistant:
                           Command(website_permutations(["math"]),
                                  self.go_to_math,
                                  _help="Goes to MATH2210Q: Linear Algebra"),
-                         Command(["show numbers"],
+                         Command(["show numbers",
+                                  "show links",
+                                  "numbers",
+                                  "links"],
                                  self.show_numbers,
-                                 _help="Displays numbers on browser")]
+                                 _help="Displays numbers on browser"),
+                         Command(["close"],
+                                 self.close,
+                                 _help="Close all browsers"),
+                         Command(["end", "off"],
+                                 self.end,
+                                 _help="Closes all browsers and ends session")]
 
         self.cmd_executor = self.init_speech_recognizer()
 
@@ -94,13 +106,20 @@ class Assistant:
         self.cmd_executor.run()
 
     def test(self):
+        """Tests funcs and leaves browser open for further testing
+
+        Better than pytest because it leaves browser open for this case
+        """
+
         for func in [self.go_to_blackboard,
                      self.go_to_software_engineering,
                      self.go_to_ethics,
                      self.go_to_cyber_security,
                      self.go_to_education,
                      self.go_to_history,
-                     self.go_to_math]:
+                     self.go_to_math,
+                     self.close]:
+            logging.info(f"Running test func {func.__name__}")
             func(func.__name__.replace("_", " "))
             time.sleep(1)
 
@@ -108,8 +127,19 @@ class Assistant:
 ### Commands ###
 ################
 
-    def show_numbers(self):
-        pass
+    def show_numbers(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        browser.show_links()
+
+    def close(self, speech):
+        for side, browser in self.browsers:
+            if browser is not None:
+                browser.close()
+
+    def end(self, speech):
+        # Close browsers
+        self.close()
+        sys.exit(0)
 
     def go_to_blackboard(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
@@ -120,22 +150,22 @@ class Assistant:
 ########################
 
     def go_to_software_engineering(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_87669_1")
+        self.open_blackboard_course(speech, course_id="_87669_1")
 
     def go_to_ethics(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_93434_1")
+        self.open_blackboard_course(speech, course_id="_93434_1")
 
     def go_to_cyber_security(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_92554_1")
+        self.open_blackboard_course(speech, course_id="_92554_1")
 
     def go_to_education(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_94421_1")
+        self.open_blackboard_course(speech, course_id="_94421_1")
 
     def go_to_history(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_89027_1")
+        self.open_blackboard_course(speech, course_id="_89027_1")
 
     def go_to_math(self, speech: str):
-        self.open_blackboard_link(speech, course_id="course-link-_89692_1")
+        self.open_blackboard_course(speech, course_id="_89692_1")
 
 ########################
 ### Helper Functions ###
@@ -180,7 +210,11 @@ class Assistant:
 ### Command Helper Funcs ###
 ############################
 
-    def open_blackboard_link(self, speech, course_id=None):
+    def open_blackboard_course(self, speech, course_id=None):
         browser, open_new = self.get_browser_and_open_status(speech)
-        browser.open_blackboard(open_new)
-        browser.wait_click(_id=course_id)
+        if not browser.blackboard_logged_in or open_new:
+            browser.open_blackboard(open_new)
+        base_url = "https://lms.uconn.edu/ultra/courses/"
+        browser.get(base_url + f"{course_id}/cl/outline")
+        browser.switch_to_iframe()
+        browser.wait_click(_id="menuPuller")
