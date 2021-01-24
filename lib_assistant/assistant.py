@@ -67,9 +67,15 @@ class Assistant:
                          Command(["close"],
                                  self.close,
                                  _help="Close all browsers"),
-                         Command(["end", "off"],
+                         Command(["off", "stop listening", "go to sleep"],
                                  self.end,
-                                 _help="Closes all browsers and ends session")]
+                                 _help="Closes all browsers and ends session"),
+                         Command(["help", "show help", "commands", "show commands"],
+                                 self.help,
+                                 _help="Displays all commands"),
+                         Command(["Show websites commands", "Show websites"],
+                                 self.show_websites,
+                                 _help="Show website commands")]
 
         # Add number commands
         numbers_to_exclude = set([2, 4, 20, 30, 40, 50, 60, 70, 80, 90])
@@ -113,6 +119,7 @@ class Assistant:
         Better than pytest because it leaves browser open for this case
         """
 
+        self.help()
         self.test_click_func()
         self.test_link_funcs()
 
@@ -143,6 +150,7 @@ class Assistant:
         browser.show_links()
 
     def click_number(self, speech):
+        num = None
         # Remove word by word until you are just left with nums
         for i in range(len(speech.split())):
             number_str = "".join(speech.split()[i:])
@@ -150,8 +158,10 @@ class Assistant:
                 num = w2n.word_to_num(number_str)
             except ValueError:
                 pass
+        assert num is not None, "There was no number in text?"
         try:
             self.browsers[self.focused_side].click_number(num)
+            self.browsers[self.focused_side].show_links()
         except AttributeError:
             print("You tried to click a number when the browser wasn't open")
 
@@ -159,11 +169,25 @@ class Assistant:
         for side, browser in self.browsers.items():
             if browser is not None:
                 browser.close()
+                self.browsers[side] = None
 
     def end(self, speech):
         # Close browsers
         self.close()
         sys.exit(0)
+
+    def help(self):
+        for command in self.standard_commands:
+            print(command)
+            time.sleep(2)
+        self.show_websites()
+        print("num command ex:")
+        print(Number_Command(1, self.click_number))
+
+    def show_websites(self):
+        for link_command in self.link_commands:
+            print(link_command)
+            time.sleep(2)
 
     def go_to_blackboard(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
@@ -195,6 +219,14 @@ class Assistant:
 ### Helper Functions ###
 ### ONLY for helping ###
 ########################
+
+    @property
+    def standard_commands(self):
+        return [x for x in self.commands if x.__class__ == Command]
+
+    @property
+    def link_commands(self):
+        return [x for x in self.commands if x.__class__ == Link_Command]
 
     @property
     def focused_browser(self):

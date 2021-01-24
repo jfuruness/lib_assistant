@@ -23,7 +23,8 @@ class Command:
             self._help = callback_func.__name__.replace("_", " ")
 
     def __str__(self):
-        return " ".join(self.keyword_list) + f" {self.callback_func.__name__}"
+        return (f"Desc: {self._help}\n"
+                "\tOptions:\n\t\t") + "\n\t\t".join(self.keyword_list) + "\n"
 
 class Link_Command(Command):
     def __init__(self, ways_to_call_link, callback_func, name):
