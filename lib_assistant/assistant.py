@@ -27,46 +27,35 @@ import sys
 from lib_browser import Convenience_Browser, Side
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
 
-from .command import Command
-
-def website_permutations(ways_to_call_website: list) -> list:
-    """Gets ways to say how to go to a website"""
-
-    commands = []
-    for way_to_call_website in ways_to_call_website:
-        commands.append(way_to_call_website)
-        for prepend in ["go to", "open"]:
-            commands.append(prepend + " " + way_to_call_website)
-    return commands
+from .command import Command, Link_Command
 
 class Assistant:
     def __init__(self):
-        self.commands = [Command(website_permutations(["husky",
-                                                     "blackboard"]),
-                                 self.go_to_blackboard,
-                                 _help="Goes to Huskyct"),
-                         Command(website_permutations(["software",
-                                                       "software engineering"]),
-                                 self.go_to_software_engineering,
-                                 _help="Goes to CSE2102: Software Engineering"),
-                         Command(website_permutations(["cyber",
-                                                       "security",
-                                                       "cyber security",
-                                                       "cybersecurity"]),
-                                 self.go_to_cyber_security,
-                                 _help="Goes to CSE3140: Cybersecurity"),
-                         Command(website_permutations(["ethics"]),
-                                 self.go_to_ethics,
-                                 _help="Goes to CSE300: Ethics"),
-                         Command(website_permutations(["history"]),
-                                 self.go_to_history,
-                                 _help="Goes to HIST1502: History"),
-                         Command(website_permutations(["education"]),
-                                 self.go_to_education,
-                                 _help="Goes to EPSY3010: Educational Psychology"),
-                          Command(website_permutations(["math"]),
-                                 self.go_to_math,
-                                 _help="Goes to MATH2210Q: Linear Algebra"),
+        self.commands = [Link_Command(["husky", "blackboard"]),
+                                      self.go_to_blackboard,
+                                      name="Huskyct"),
+                         Link_Command(["software", "software engineering"],
+                                      self.go_to_software_engineering,
+                                      name="CSE2102: Software Engineering"),
+                         Link_Command(["cyber",
+                                       "security",
+                                       "cyber security",
+                                       "cybersecurity"]),
+                                      self.go_to_cyber_security,
+                                      name="Cybersecurity"),
+                         Link_Command(["ethics"],
+                                      self.go_to_ethics,
+                                      name="CSE300: Ethics"),
+                         Link_Command(["history"],
+                                      self.go_to_history,
+                                      name="HIST1502: History"),
+                         Link_Command(["education"],
+                                      self.go_to_education,
+                                      name=("EPSY3010: "
+                                            "Educational Psychology"),
+                         Link_Command(["math"],
+                                      self.go_to_math,
+                                      name="MATH2210Q: Linear Algebra"),
                          Command(["show numbers",
                                   "show links",
                                   "numbers",
@@ -79,6 +68,10 @@ class Assistant:
                          Command(["end", "off"],
                                  self.end,
                                  _help="Closes all browsers and ends session")]
+        numbers_to_exclude = set([2, 4, 20, 30, 40, 50, 60, 70, 80, 90])
+        for i in range(99):
+            if i not in numbers_to_exclude:
+                commands.append(Number_Command(i, self.click_number))
 
         self.cmd_executor = self.init_speech_recognizer()
 
@@ -112,7 +105,6 @@ class Assistant:
         """
 
         for func in [self.go_to_blackboard,
-                     self.go_to_math,
                      self.go_to_software_engineering,
                      self.go_to_ethics,
                      self.go_to_cyber_security,
@@ -131,6 +123,18 @@ class Assistant:
     def show_numbers(self, speech):
         browser, open_new = self.get_browser_and_open_status(speech)
         browser.show_links()
+
+    def click_number(self, speech):
+        # Remove word by word until you are just left with nums
+        for i in range(len(speech.split())):
+            number_str = "".join(speech.split()[i:])
+            num = word2num(i)
+            if num != None:
+                break
+        try:
+            self.browsers[self.focused_side].click_number(number)
+        except AttributeError:
+            print("You tried to click a number when the browser wasn't open")
 
     def close(self, speech):
         for side, browser in self.browsers:
