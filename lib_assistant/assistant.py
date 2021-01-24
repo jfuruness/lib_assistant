@@ -45,7 +45,7 @@ class Assistant:
                                        "cybersecurity"],
                                       self.go_to_cyber_security,
                                       name="Cybersecurity"),
-                         Link_Command(["ethics"],
+                         Link_Command(["philosophy"],
                                       self.go_to_ethics,
                                       name="CSE300: Ethics"),
                          Link_Command(["history"],
@@ -59,29 +59,51 @@ class Assistant:
                                       self.go_to_math,
                                       name="MATH2210Q: Linear Algebra"),
                          Command(["show numbers",
-                                  "show links",
-                                  "numbers",
-                                  "links"],
+                                  "numbers"],
                                  self.show_numbers,
                                  _help="Displays numbers on browser"),
                          Command(["close"],
                                  self.close,
                                  _help="Close all browsers"),
-                         Command(["off", "stop listening", "go to sleep"],
+                         Command(["off", "stop", "go to sleep"],
                                  self.end,
                                  _help="Closes all browsers and ends session"),
-                         Command(["help", "show help", "commands", "show commands"],
+                         Command(["show commands"],
                                  self.help,
                                  _help="Displays all commands"),
-                         Command(["Show websites commands", "Show websites"],
+                         Command(["Show websites", "websites"],
                                  self.show_websites,
-                                 _help="Show website commands")]
+                                 _help="Show website commands"),
+                         Command(["on the left", "left"],
+                                 self.focus_left,
+                                 _help="Commands left browser"),
+                         Command(["on the right", "right"],
+                                 self.focus_right,
+                                 _help="Commands right browser"),
+                         Command(["in the center", "center", "middle", "in the middle"],
+                                 self.focus_center,
+                                 _help="Commands center browser"),
+                         Command(["scroll down", "move down", "down"],
+                                 self.scroll_down,
+                                 _help="Scroll down"),
+                         Command(["scroll up", "move up", "up"],
+                                 self.scroll_up,
+                                 _help="Scroll up"),
+                         Command(["page down"],
+                                 self.page_down,
+                                 _help="Scroll down"),
+                         Command(["page up"],
+                                 self.page_up,
+                                 _help="Scroll up"),]
 
         # Add number commands
-        numbers_to_exclude = set([2, 4, 20, 30, 40, 50, 60, 70, 80, 90])
+        nums_to_exclude = set([1, 2, 4, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90,
+                               21, 31, 41, 51, 61, 71, 81, 91,
+                               22, 32, 42, 52, 62, 72, 82, 92,
+                               24, 34, 44, 54, 64, 74, 84, 94])
         # Reverse it so that if user says 21, doesn't conflict with 1
         for i in reversed(list(range(99))):
-            if i not in numbers_to_exclude:
+            if i not in nums_to_exclude:
                 self.commands.append(Number_Command(i, self.click_number))
 
         self.cmd_executor = self.init_speech_recognizer()
@@ -96,12 +118,36 @@ class Assistant:
         for command in self.commands:
             for keyword in command.keyword_list:
                 # Threshold is 10 ** whatever we set here
-                keywords_dict[keyword] = -10
+                if isinstance(command, Number_Command):
+                    keywords_dict[keyword] = -1
+                else:
+                    keywords_dict[keyword] = -10000000
                 # Set the callback func for the keyword
                 callbacks_dict[keyword] = command.callback_func
+            keywords_dict["ethics"] = -100000000000
+            keywords_dict["eleven"] = -100
+            keywords_dict["fourteen"] = -10000
+        # right
+        removed_words = ["ray", "great", "write", "both", "but", "red", "direct",
+                         "rate", "rates", "we're"]
+        # scroll
+        removed_words += ["gone", "swirl", "lot", "squirrel", "scrawled"
+                          "screw"]
+        # Up
+        removed_words += ["of", "oh", "op", "ah", "out"]
+        # Page
+        removed_words += ["joe", "job", "hey", "they", "jump", "if", "joke",
+                          "ma", "jar", "jobs", "theirs", "their", "paige",
+                          "punjab", "ninja", "purjure", "courage", "pigeon",
+                          "de", "jo", "they'd", "bridge", "i'll", "paid",
+                          "could", "perjure", "good", "jeff", "just", "interrupt",
+                          "java", "that", "they've"]
+        # Eleven
+        removed_words += ["obama", "love"]
 
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
-                                          callback_dict=callbacks_dict)
+                                          callback_dict=callbacks_dict,
+                                          removed_words=removed_words)
 
     def run(self, test=False):
         if test:
@@ -145,9 +191,18 @@ class Assistant:
 ### Commands ###
 ################
 
-    def show_numbers(self, speech):
+    def focus_right(self, speech):
+        self.focused_side = Side.RIGHT
+
+    def focus_left(self, speech):
+        self.focused_side = Side.LEFT
+
+    def focus_center(self, speech):
+        self.focused_side = Side.CENTER
+
+    def show_numbers(self, speech=""):
         browser, open_new = self.get_browser_and_open_status(speech)
-        browser.show_links()
+        browser.show_links(open_new)
 
     def click_number(self, speech):
         num = None
@@ -165,18 +220,18 @@ class Assistant:
         except AttributeError:
             print("You tried to click a number when the browser wasn't open")
 
-    def close(self, speech):
+    def close(self, speech=""):
         for side, browser in self.browsers.items():
             if browser is not None:
                 browser.close()
                 self.browsers[side] = None
 
-    def end(self, speech):
+    def end(self, speech=""):
         # Close browsers
         self.close()
         sys.exit(0)
 
-    def help(self):
+    def help(self, speech=""):
         for command in self.standard_commands:
             print(command)
             time.sleep(2)
@@ -184,10 +239,34 @@ class Assistant:
         print("num command ex:")
         print(Number_Command(1, self.click_number))
 
-    def show_websites(self):
+    def show_websites(self, speech=""):
         for link_command in self.link_commands:
             print(link_command)
             time.sleep(2)
+
+    def scroll_down(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.scroll_down()
+
+    def scroll_up(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.scroll_up()
+
+    def page_down(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.page_down()
+
+    def page_up(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.page_up()
 
     def go_to_blackboard(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
@@ -215,6 +294,15 @@ class Assistant:
     def go_to_math(self, speech: str):
         self.open_blackboard_course(speech, course_id="_89692_1")
 
+    def go_to_shit(self, speech: str):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.get("http://www2.math.uconn.edu/"
+                    "~olshevsky/classes/2021_Spring/math2210/math2210.php")
+        browser.wait_send_keys(name="txtUsername", "math2210")
+        browser.wait_send_keys(name="txtPassword", "Gauss")
+
 ########################
 ### Helper Functions ###
 ### ONLY for helping ###
@@ -241,7 +329,7 @@ class Assistant:
         side = self.get_browser_side(speech)
 
         if self.browsers[side] is None:
-            self.browsers[side] = Convenience_Browser()
+            self.browsers[side] = Convenience_Browser(side=side)
             open_new = True
         else:
             open_new = False
