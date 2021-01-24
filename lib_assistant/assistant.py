@@ -27,11 +27,13 @@ import sys
 from lib_browser import Convenience_Browser, Side
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
 
-from .command import Command, Link_Command
+from word2number import w2n
+
+from .command import Command, Link_Command, Number_Command
 
 class Assistant:
     def __init__(self):
-        self.commands = [Link_Command(["husky", "blackboard"]),
+        self.commands = [Link_Command(["husky", "blackboard"],
                                       self.go_to_blackboard,
                                       name="Huskyct"),
                          Link_Command(["software", "software engineering"],
@@ -40,7 +42,7 @@ class Assistant:
                          Link_Command(["cyber",
                                        "security",
                                        "cyber security",
-                                       "cybersecurity"]),
+                                       "cybersecurity"],
                                       self.go_to_cyber_security,
                                       name="Cybersecurity"),
                          Link_Command(["ethics"],
@@ -52,7 +54,7 @@ class Assistant:
                          Link_Command(["education"],
                                       self.go_to_education,
                                       name=("EPSY3010: "
-                                            "Educational Psychology"),
+                                            "Educational Psychology")),
                          Link_Command(["math"],
                                       self.go_to_math,
                                       name="MATH2210Q: Linear Algebra"),
@@ -68,10 +70,13 @@ class Assistant:
                          Command(["end", "off"],
                                  self.end,
                                  _help="Closes all browsers and ends session")]
+
+        # Add number commands
         numbers_to_exclude = set([2, 4, 20, 30, 40, 50, 60, 70, 80, 90])
-        for i in range(99):
+        # Reverse it so that if user says 21, doesn't conflict with 1
+        for i in reversed(list(range(99))):
             if i not in numbers_to_exclude:
-                commands.append(Number_Command(i, self.click_number))
+                self.commands.append(Number_Command(i, self.click_number))
 
         self.cmd_executor = self.init_speech_recognizer()
 
@@ -98,12 +103,25 @@ class Assistant:
             input("Done w test")
         self.cmd_executor.run()
 
+##################
+### Test funcs ###
+##################
+
     def test(self):
         """Tests funcs and leaves browser open for further testing
 
         Better than pytest because it leaves browser open for this case
         """
 
+        self.test_click_func()
+        self.test_link_funcs()
+
+    def test_click_func(self):
+        logging.info("Testing click func")
+        self.go_to_math("go to math")
+        self.click_number("click eight")
+
+    def test_link_funcs(self):
         for func in [self.go_to_blackboard,
                      self.go_to_software_engineering,
                      self.go_to_ethics,
@@ -128,16 +146,17 @@ class Assistant:
         # Remove word by word until you are just left with nums
         for i in range(len(speech.split())):
             number_str = "".join(speech.split()[i:])
-            num = word2num(i)
-            if num != None:
-                break
+            try:
+                num = w2n.word_to_num(number_str)
+            except ValueError:
+                pass
         try:
-            self.browsers[self.focused_side].click_number(number)
+            self.browsers[self.focused_side].click_number(num)
         except AttributeError:
             print("You tried to click a number when the browser wasn't open")
 
     def close(self, speech):
-        for side, browser in self.browsers:
+        for side, browser in self.browsers.items():
             if browser is not None:
                 browser.close()
 

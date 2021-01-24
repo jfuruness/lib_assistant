@@ -1,3 +1,5 @@
+num2words
 pocketsphinx
 pynput
-selenium==3.141.0
+selenium
+word2number
