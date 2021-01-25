@@ -125,7 +125,7 @@ class Assistant:
                          Command(["maximize", "maximus", "max"], self.maximize)]
 
         # Add number commands
-        nums_to_exclude = set([1, 2, 4, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90,
+        nums_to_exclude = set([1, 2, 4, 6, 7, 8, 9, 10, 11, 13, 14, 20, 30, 40, 50, 60, 70, 80, 90,
                                21, 31, 41, 51, 61, 71, 81, 91,
                                22, 32, 42, 52, 62, 72, 82, 92,
                                24, 34, 44, 54, 64, 74, 84, 94])
@@ -153,7 +153,6 @@ class Assistant:
                 # Set the callback func for the keyword
                 callbacks_dict[keyword] = command.callback_func
             keywords_dict["ethics"] = -100000000000
-            keywords_dict["eleven"] = -100
             keywords_dict["fourteen"] = -10000
 
         removed_words = []
@@ -394,7 +393,7 @@ class Assistant:
     def go_to_math_website(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
         browser.open_math_website(open_new=open_new)
-        browser.show_numbers()
+        browser.show_links()
 
 ########################
 ### Helper Functions ###
