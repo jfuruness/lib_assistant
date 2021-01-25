@@ -24,7 +24,16 @@ import logging
 import time
 import sys
 
+import re
+import smtplib
+import time
+import email
+import imaplib
+import traceback
+from urllib.parse import unquote
+
 from lib_browser import Convenience_Browser, Side
+from lib_config import Config
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
 
 from word2number import w2n
@@ -32,8 +41,17 @@ from word2number import w2n
 from .command import Command, Link_Command, Number_Command
 
 class Assistant:
+
+    html_file = "/tmp/assistant.html"
+
     def __init__(self):
-        self.commands = [Link_Command(["husky", "blackboard"],
+        self.commands = [Link_Command(["Ice", "Whim", "Wim"],
+                                      self.go_to_ice_man,
+                                      name="Ice Man/Wim Hof"),
+                         Link_Command(["meet", "event", "events", "meeting", "meetings"],
+                                      self.go_to_zoom,
+                                      name="Zoom"),
+                         Link_Command(["husky", "blackboard", "black"],
                                       self.go_to_blackboard,
                                       name="Huskyct"),
                          Link_Command(["software", "software engineering"],
@@ -58,6 +76,9 @@ class Assistant:
                          Link_Command(["math"],
                                       self.go_to_math,
                                       name="MATH2210Q: Linear Algebra"),
+                         Link_Command(["linear", "linear algebra", "algebra"],
+                                      self.go_to_math_website,
+                                      name="Math website"),
                          Command(["show numbers",
                                   "numbers"],
                                  self.show_numbers,
@@ -68,7 +89,7 @@ class Assistant:
                          Command(["off", "stop", "go to sleep"],
                                  self.end,
                                  _help="Closes all browsers and ends session"),
-                         Command(["show commands"],
+                         Command(["show commands", "show help", "show hope"],
                                  self.help,
                                  _help="Displays all commands"),
                          Command(["Show websites", "websites"],
@@ -80,7 +101,7 @@ class Assistant:
                          Command(["on the right", "right"],
                                  self.focus_right,
                                  _help="Commands right browser"),
-                         Command(["in the center", "center", "middle", "in the middle"],
+                         Command(["in the center", "center", "middle", "in the middle", "censor"],
                                  self.focus_center,
                                  _help="Commands center browser"),
                          Command(["scroll down", "move down", "down"],
@@ -94,7 +115,14 @@ class Assistant:
                                  _help="Scroll down"),
                          Command(["page up"],
                                  self.page_up,
-                                 _help="Scroll up"),]
+                                 _help="Scroll up"),
+                         Command(["back", "go back"],
+                                 self.back,
+                                 _help="Go back a page"),
+                         Command(["accept", "except", "okay", "accept pop up"],
+                                 self.accept_pop_up,
+                                 _help="Accepts pop up window"),
+                         Command(["maximize", "maximus", "max"], self.maximize)]
 
         # Add number commands
         nums_to_exclude = set([1, 2, 4, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90,
@@ -110,7 +138,7 @@ class Assistant:
 
         self.browsers = {x: None for x in Side}
         # Default to the left side for opening
-        self.focused_side = Side.LEFT
+        self.focused_side = Side.RIGHT
 
     def init_speech_recognizer(self):
         keywords_dict = {}
@@ -127,9 +155,15 @@ class Assistant:
             keywords_dict["ethics"] = -100000000000
             keywords_dict["eleven"] = -100
             keywords_dict["fourteen"] = -10000
+
+        removed_words = []
+        # math
+        removed_words += ["mouth"]
+        # linear
+        removed_words += ["lanier", "year", "when", "your", "you're", "ear"]
         # right
-        removed_words = ["ray", "great", "write", "both", "but", "red", "direct",
-                         "rate", "rates", "we're"]
+        removed_words += ["ray", "great", "write", "both", "but", "red", "direct",
+                         "rate", "rates", "we're", "birds", "burt"]
         # scroll
         removed_words += ["gone", "swirl", "lot", "squirrel", "scrawled"
                           "screw"]
@@ -144,6 +178,15 @@ class Assistant:
                           "java", "that", "they've"]
         # Eleven
         removed_words += ["obama", "love"]
+
+        # Third
+        removed_words += ["third"]
+        # back
+        removed_words += ["yeah"]
+        # meeting
+        removed_words += ["me", "him"]
+        # Event
+        removed_words += ["resent"]
 
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
                                           callback_dict=callbacks_dict,
@@ -165,6 +208,8 @@ class Assistant:
         Better than pytest because it leaves browser open for this case
         """
 
+        self.go_to_ice_man()
+        self.go_to_zoom("")
         self.help()
         self.test_click_func()
         self.test_link_funcs()
@@ -200,6 +245,23 @@ class Assistant:
     def focus_center(self, speech):
         self.focused_side = Side.CENTER
 
+    def maximize(self, speech):
+        if self.focused_side == Side.CENTER:
+            pass
+        else:
+            browser, open_new = self.get_browser_and_open_status(speech)
+            if self.browsers[Side.CENTER]:
+                self.browsers[Side.CENTER].close()
+                self.browsers[Side.CENTER] = None
+            if open_new:
+                browser.open()
+            side = browser.side
+            self.browsers[side] = None
+            self.browsers[Side.CENTER] = browser
+            browser.side = Side.CENTER
+            browser.maximize()
+            self.focused_side = Side.CENTER
+
     def show_numbers(self, speech=""):
         browser, open_new = self.get_browser_and_open_status(speech)
         browser.show_links(open_new)
@@ -213,12 +275,32 @@ class Assistant:
                 num = w2n.word_to_num(number_str)
             except ValueError:
                 pass
-        assert num is not None, "There was no number in text?"
+        try:
+            assert num is not None, "There was no number in text?"
+        except AssertionError:
+            logging.warning("no num in text, not executing")
+            return
         try:
             self.browsers[self.focused_side].click_number(num)
             self.browsers[self.focused_side].show_links()
         except AttributeError:
             print("You tried to click a number when the browser wasn't open")
+
+    def back(self, speech=""):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.back()
+
+    def accept_pop_up(self, speech=""):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+           browser.open()
+        try:
+            browser.accept_pop_up()
+        except Exception as e:
+            logging.warning(e)
+
 
     def close(self, speech=""):
         for side, browser in self.browsers.items():
@@ -268,6 +350,21 @@ class Assistant:
             browser.open()
         browser.page_up()
 
+    def go_to_ice_man(self, speech=""):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.open_ice_man()
+ 
+    def go_to_zoom(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        self._write_zoom_links()
+        browser.get("file:///" + self.html_file)
+        self.show_numbers()
+
+
     def go_to_blackboard(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
         browser.open_blackboard(open_new=open_new)
@@ -294,14 +391,10 @@ class Assistant:
     def go_to_math(self, speech: str):
         self.open_blackboard_course(speech, course_id="_89692_1")
 
-    def go_to_shit(self, speech: str):
+    def go_to_math_website(self, speech: str):
         browser, open_new = self.get_browser_and_open_status(speech)
-        if open_new:
-            browser.open()
-        browser.get("http://www2.math.uconn.edu/"
-                    "~olshevsky/classes/2021_Spring/math2210/math2210.php")
-        browser.wait_send_keys(name="txtUsername", "math2210")
-        browser.wait_send_keys(name="txtPassword", "Gauss")
+        browser.open_math_website(open_new=open_new)
+        browser.show_numbers()
 
 ########################
 ### Helper Functions ###
@@ -361,5 +454,64 @@ class Assistant:
         base_url = "https://lms.uconn.edu/ultra/courses/"
         browser.get(base_url + f"{course_id}/cl/outline")
         browser.switch_to_iframe()
-        browser.wait_click(_id="menuPuller")
+        try:
+            browser.wait_click(_id="menuPuller")
+        except selenium.common.exceptions.TimeoutException:
+            logging.warning("Couldn't pull out menu")
         browser.show_links()
+
+    def _write_zoom_links(self):
+
+        logging.info("Getting emails")
+
+        # https://www.geeksforgeeks.org/python-fetch-your-gmail-emails-from-a-particular-user/
+        _email, password = Config().webull_email_creds()
+        SMTP_SERVER = "imap.gmail.com" 
+        SMTP_PORT = 993
+
+        html = ["<DOCTYPE html>",
+                "<html>",
+                "<head><title>Zoom links</title></head>",
+                "<body>",
+                "<h1>Zoom Links</h1>"]
+
+        try:
+            mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+            mail.login(str(_email), str(password))
+            mail.select('inbox')
+
+            data = mail.search(None, 'ALL')
+            mail_ids = data[1]
+            id_list = mail_ids[0].split()   
+            first_email_id = int(id_list[0])
+            latest_email_id = int(id_list[-1])
+
+            max_links = 10
+
+            for i in range(latest_email_id, first_email_id, -1):
+                data = mail.fetch(str(i), '(RFC822)' )
+                for response_part in data:
+                    arr = response_part[0]
+                    if isinstance(arr, tuple):
+                        msg = email.message_from_string(str(arr[1], 'utf-8'))
+                        email_subject = msg['subject']
+                        email_from = msg['from']
+                        msg = str(msg).replace("\n", "").replace(" ", "")
+                        zoom_links = re.findall("https%3A%2F%2F=us02web.zoom.us%2Fj%2F\d+?%3Fpwd%3D.*?&", str(msg))
+                        if len(zoom_links) == 0:
+                            zoom_links = re.findall("https.*?/j/\d+\-", str(msg))
+                            if len(zoom_links) == 0:
+                                zoom_links = re.findall("https://zoom.us/j/\d+\?pwd=\w+\W", str(msg))
+                        if zoom_links:
+                            zoom_link = zoom_links[0].replace("=", "")[:-1]
+                            html.append(f"<div><a href='{unquote(zoom_link)}'>{email_subject}</a></div><br>")
+                            max_links -= 1
+                if max_links <= 0:
+                    break
+        except Exception as e:
+            logging.warning(e)
+
+        html.append("</body></html>")
+        with open(self.html_file, "w") as f:
+            for html_line in html:
+                f.write(html_line + "\n")

@@ -24,7 +24,7 @@ class Command:
                   "in the center ",]
 
     def __init__(self, keyword_list, callback_func, _help=None):
-        self.keyword_list = keyword_list
+        self.keyword_list = [x.lower() for x in keyword_list]
         self.callback_func = callback_func
         if _help:
             self._help = _help
