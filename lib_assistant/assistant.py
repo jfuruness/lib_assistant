@@ -39,90 +39,17 @@ from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
 from word2number import w2n
 
 from .command import Command, Link_Command, Number_Command
+from .commands import commands
 
 class Assistant:
 
     html_file = "/tmp/assistant.html"
 
     def __init__(self):
-        self.commands = [Link_Command(["Ice", "Whim", "Wim"],
-                                      self.go_to_ice_man,
-                                      name="Ice Man/Wim Hof"),
-                         Link_Command(["meet", "event", "events", "meeting", "meetings"],
-                                      self.go_to_zoom,
-                                      name="Zoom"),
-                         Link_Command(["husky", "blackboard", "black"],
-                                      self.go_to_blackboard,
-                                      name="Huskyct"),
-                         Link_Command(["software", "software engineering"],
-                                      self.go_to_software_engineering,
-                                      name="CSE2102: Software Engineering"),
-                         Link_Command(["cyber",
-                                       "security",
-                                       "cyber security",
-                                       "cybersecurity"],
-                                      self.go_to_cyber_security,
-                                      name="Cybersecurity"),
-                         Link_Command(["philosophy"],
-                                      self.go_to_ethics,
-                                      name="CSE300: Ethics"),
-                         Link_Command(["history"],
-                                      self.go_to_history,
-                                      name="HIST1502: History"),
-                         Link_Command(["education"],
-                                      self.go_to_education,
-                                      name=("EPSY3010: "
-                                            "Educational Psychology")),
-                         Link_Command(["math"],
-                                      self.go_to_math,
-                                      name="MATH2210Q: Linear Algebra"),
-                         Link_Command(["linear", "linear algebra", "algebra"],
-                                      self.go_to_math_website,
-                                      name="Math website"),
-                         Command(["show numbers",
-                                  "numbers"],
-                                 self.show_numbers,
-                                 _help="Displays numbers on browser"),
-                         Command(["close"],
-                                 self.close,
-                                 _help="Close all browsers"),
-                         Command(["off", "stop", "go to sleep"],
-                                 self.end,
-                                 _help="Closes all browsers and ends session"),
-                         Command(["show commands", "show help", "show hope"],
-                                 self.help,
-                                 _help="Displays all commands"),
-                         Command(["Show websites", "websites"],
-                                 self.show_websites,
-                                 _help="Show website commands"),
-                         Command(["on the left", "left"],
-                                 self.focus_left,
-                                 _help="Commands left browser"),
-                         Command(["on the right", "right"],
-                                 self.focus_right,
-                                 _help="Commands right browser"),
-                         Command(["in the center", "center", "middle", "in the middle", "censor"],
-                                 self.focus_center,
-                                 _help="Commands center browser"),
-                         Command(["scroll down", "move down", "down"],
-                                 self.scroll_down,
-                                 _help="Scroll down"),
-                         Command(["scroll up", "move up", "up"],
-                                 self.scroll_up,
-                                 _help="Scroll up"),
-                         Command(["page down"],
-                                 self.page_down,
-                                 _help="Scroll down"),
-                         Command(["page up"],
-                                 self.page_up,
-                                 _help="Scroll up"),
-                         Command(["back", "go back"],
-                                 self.back,
-                                 _help="Go back a page"),
-                         Command(["accept", "except", "okay", "accept pop up"],
-                                 self.accept_pop_up,
-                                 _help="Accepts pop up window"),
-                         Command(["maximize", "maximus", "max"], self.maximize)]
+        self.commands = []
+        for command in commands:
+            command.add_callback_func(getattr(self, command.func_name))
+            self.commands.append(command)
 
         # Add number commands
         nums_to_exclude = set([1, 2, 4, 6, 7, 8, 9, 10, 11, 13, 14, 20, 30, 40, 50, 60, 70, 80, 90,
