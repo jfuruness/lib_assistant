@@ -48,7 +48,13 @@ class Assistant:
     def __init__(self):
         self.commands = []
         for command in commands:
-            command.add_callback_func(getattr(self, command.func_name))
+            try:
+                callback = getattr(self, command.func_name)
+            except AttributeError:
+                def placeholder_func(speech):
+                    print(f"Placeholder for {command.func_name}")
+                callback = placeholder_func
+            command.add_callback_func(callback)
             self.commands.append(command)
 
         # Add number commands
