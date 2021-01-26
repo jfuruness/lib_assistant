@@ -44,11 +44,11 @@ class Link_Command(Command):
 class Mode_Command(Command):
     def __init__(self, ways_to_call, func_name, name):
         keyword_list = []
-        for way_to_cal in ways_to_call:
+        for way_to_call in ways_to_call:
             for prepend in ["", "enter ", "begin ", "start ", "activate "]:
-                for _append in ["", " mode"]
-                keyword_list.append(f"{prepend}{way_to_call}{append}")
-        super(Link_Command, self).__init__(keyword_list=keyword_list,
+                for _append in ["", " mode"]:
+                    keyword_list.append(f"{prepend}{way_to_call}{_append}")
+        super(Mode_Command, self).__init__(keyword_list=keyword_list,
                                            func_name=func_name,
                                            _help=f"Starts {name} mode")
 
@@ -57,7 +57,7 @@ class Directional_Command(Command):
     def __init__(self, directions: list, func_name):
         keyword_list = []
         for direction in directions:
-            for focus in ["", "focus "]
+            for focus in ["", "focus "]:
                 for prepend in ["", "on the ", "in the "]:
                     for _append in ["",
                                     " browser",

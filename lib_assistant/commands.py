@@ -10,7 +10,8 @@ __maintainer__ = "Justin Furuness"
 __email__ = "jfuruness@gmail.com"
 __status__ = "Development"
 
-from .command import Command, Link_Command, Number_Command
+from .command import Command, Link_Command, Number_Command, Directional_Command
+from .command import Mode_Command
 
 commands = [
 Link_Command(["ice", "whim", "wim", "wim hof", "whim hof", "ice man"],
