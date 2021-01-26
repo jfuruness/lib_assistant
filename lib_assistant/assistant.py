@@ -45,7 +45,8 @@ class Assistant:
 
     html_file = "/tmp/assistant.html"
 
-    def __init__(self):
+    def __init__(self, test=False):
+        self.test = test
         self.commands = []
         for command in commands:
             try:
@@ -131,11 +132,12 @@ class Assistant:
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
                                           callback_dict=callbacks_dict,
                                           removed_words=removed_words,
-                                          tuning_phrases=tuning_phrases)
+                                          tuning_phrases=tuning_phrases,
+                                          test=self.test)
 
-    def run(self, test=False):
-        if test:
-            self.test()
+    def run(self):
+        if self.test:
+            self.test_funcs()
             input("Done w test")
         self.cmd_executor.run()
 
@@ -143,7 +145,7 @@ class Assistant:
 ### Test funcs ###
 ##################
 
-    def test(self):
+    def test_funcs(self):
         """Tests funcs and leaves browser open for further testing
 
         Better than pytest because it leaves browser open for this case

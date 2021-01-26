@@ -34,4 +34,4 @@ def main():
     utils.config_logging(DEBUG if args.debug else logging.INFO, "assistant")
 
     if args.run:
-        Assistant().run(args.test)
+        Assistant(test=args.test).run()
