@@ -75,7 +75,7 @@ class Number_Command(Command):
     def __init__(self, num: int, callback_func):
         num_str = num2words(num).replace("-", " ")
         keyword_list = []
-        for prepend in ["tap ", "click ", "press", ""]:
+        for prepend in ["tap ", "click ", "press ", ""]:
             for prepend_2 in ["", "number "]:
                 keyword_list.append(f"{prepend}{prepend_2}{num_str}")
         self.callback_func = callback_func

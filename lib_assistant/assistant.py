@@ -120,9 +120,18 @@ class Assistant:
         # Event
         removed_words += ["resent"]
 
+        tuning_phrases = []
+        for command in self.commands:
+            if not isinstance(command, Number_Command):
+                tuning_phrases.extend(command.keyword_list)
+        for i in range(99):
+            tuning_phrases.extend(Number_Command(i, self.click_number).keyword_list)
+
+
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
                                           callback_dict=callbacks_dict,
-                                          removed_words=removed_words)
+                                          removed_words=removed_words,
+                                          tuning_phrases=tuning_phrases)
 
     def run(self, test=False):
         if test:
