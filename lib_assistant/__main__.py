@@ -26,7 +26,7 @@ def main():
 
     parser = ArgumentParser(description="lib_assistant, see github")
 
-    for arg in ["run", "debug", "test"]:
+    for arg in ["run", "debug", "test", "train", "quiet"]:
         parser.add_argument(f"--{arg}", default=False, action='store_true')
 
     args = parser.parse_args()
@@ -34,4 +34,4 @@ def main():
     utils.config_logging(DEBUG if args.debug else logging.INFO, "assistant")
 
     if args.run:
-        Assistant(test=args.test).run()
+        Assistant(test=args.test, train=args.train, quiet=args.quiet).run()

@@ -23,10 +23,12 @@ __status__ = "Development"
 import logging
 import time
 import sys
+import os
 
 import re
 import smtplib
 import time
+import os
 import email
 import imaplib
 import traceback
@@ -45,7 +47,7 @@ class Assistant:
 
     html_file = "/tmp/assistant.html"
 
-    def __init__(self, test=False):
+    def __init__(self, test=False, train=False, quiet=False):
         self.test = test
         self.commands = []
         for command in commands:
@@ -55,6 +57,7 @@ class Assistant:
                 def placeholder_func(speech):
                     print(f"Placeholder for {command.func_name}")
                 callback = placeholder_func
+
             command.add_callback_func(callback)
             self.commands.append(command)
 
@@ -68,25 +71,29 @@ class Assistant:
             if i not in nums_to_exclude:
                 self.commands.append(Number_Command(i, self.click_number))
 
-        self.cmd_executor = self.init_speech_recognizer()
+        self.cmd_executor = self.init_speech_recognizer(train, quiet)
 
         self.browsers = {x: None for x in Side}
         # Default to the left side for opening
         self.focused_side = Side.RIGHT
 
-    def init_speech_recognizer(self):
+    def init_speech_recognizer(self, train, quiet):
         keywords_dict = {}
         callbacks_dict = {}
         for command in self.commands:
             for keyword in command.keyword_list:
+                # https://stackoverflow.com/a/41536754/8903959
                 # Threshold is 10 ** whatever we set here
                 if isinstance(command, Number_Command):
-                    keywords_dict[keyword] = -1
+                    # Max is 1
+                    keywords_dict[keyword] = 0
                 else:
-                    keywords_dict[keyword] = -10000000
+                    # Best case is -50
+                    keywords_dict[keyword] = -50
+
                 # Set the callback func for the keyword
                 callbacks_dict[keyword] = command.callback_func
-            keywords_dict["ethics"] = -100000000000
+            keywords_dict["ethics"] = -10000000000
             keywords_dict["fourteen"] = -10000
 
         removed_words = []
@@ -133,7 +140,9 @@ class Assistant:
                                           callback_dict=callbacks_dict,
                                           removed_words=removed_words,
                                           tuning_phrases=tuning_phrases,
-                                          test=self.test)
+                                          test=self.test,
+                                          train=train,
+                                          quiet=quiet)
 
     def run(self):
         if self.test:
@@ -210,6 +219,7 @@ class Assistant:
         browser.show_links(open_new)
 
     def click_number(self, speech):
+        os.system('notify-send "'+callback.__name__+'" "'+speech+'"')
         num = None
         # Remove word by word until you are just left with nums
         for i in range(len(speech.split())):
