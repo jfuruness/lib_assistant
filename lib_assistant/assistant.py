@@ -188,6 +188,20 @@ class Assistant:
 ### Commands ###
 ################
 
+    def tab_over(self, speech):
+        browser, open_new = self.browser.open_a_new_tab()
+        if open_new:
+            browser.open()
+        else:
+            browser.tab_over()
+
+    def open_tab(self, speech):
+        browser, open_new = self.browser.open_a_new_tab()
+        if open_new:
+            browser.open()
+        else:
+            browser.open_new_tab()
+
     def focus_right(self, speech):
         self.focused_side = Side.RIGHT
 
