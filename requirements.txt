@@ -2,4 +2,5 @@ num2words
 pocketsphinx
 pynput
 selenium
+SpeechRecognition
 word2number

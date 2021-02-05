@@ -42,12 +42,13 @@ class Link_Command(Command):
                                            func_name=func_name,
                                            _help=f"Goes to {name}")
 class Mode_Command(Command):
-    def __init__(self, ways_to_call, func_name, name):
+    def __init__(self, ways_to_call, func_name, name, end_func_name):
         keyword_list = []
         for way_to_call in ways_to_call:
             for prepend in ["", "enter ", "begin ", "start ", "activate "]:
                 for _append in ["", " mode"]:
                     keyword_list.append(f"{prepend}{way_to_call}{_append}")
+        self.end_func_name = end_func_name
         super(Mode_Command, self).__init__(keyword_list=keyword_list,
                                            func_name=func_name,
                                            _help=f"Starts {name} mode")

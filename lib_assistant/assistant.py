@@ -25,6 +25,10 @@ import time
 import sys
 import os
 
+import speech_recognition as sr
+
+from selenium.webdriver.common.keys import Keys
+
 import re
 import smtplib
 import time
@@ -37,6 +41,7 @@ from urllib.parse import unquote
 from lib_browser import Convenience_Browser, Side
 from lib_config import Config
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
+from lib_utils import utils
 
 from word2number import w2n
 
@@ -48,6 +53,7 @@ class Assistant:
     html_file = "/tmp/assistant.html"
 
     def __init__(self, test=False, train=False, quiet=False):
+        self.safe_mode_dict = {}
         self.test = test
         self.commands = []
         for command in commands:
@@ -72,10 +78,10 @@ class Assistant:
                 self.commands.append(Number_Command(i, self.click_number))
 
         self.cmd_executor = self.init_speech_recognizer(train, quiet)
-
         self.browsers = {x: None for x in Side}
         # Default to the left side for opening
         self.focused_side = Side.RIGHT
+        self._populate_safe_mode_dict()
 
     def init_speech_recognizer(self, train, quiet):
         keywords_dict = {}
@@ -135,6 +141,8 @@ class Assistant:
         for i in range(99):
             tuning_phrases.extend(Number_Command(i, self.click_number).keyword_list)
 
+        self.og_callback_dict = callbacks_dict
+        self.og_keywords_dict = keywords_dict
 
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
                                           callback_dict=callbacks_dict,
@@ -143,6 +151,18 @@ class Assistant:
                                           test=self.test,
                                           train=train,
                                           quiet=quiet)
+
+    def _populate_safe_mode_dict(self):
+        self.safe_mode_callback_dict = {}
+        self.safe_mode_keywords_dict = {}
+        for cmd in self.commands:
+            if cmd.func_name != "start_safe_mode":
+                continue
+            for keyword in cmd.keyword_list:
+                self.safe_mode_keywords_dict[keyword] = -50
+                self.safe_mode_callback_dict[keyword] = getattr(self,
+                                                                cmd.end_func_name)
+            break
 
     def run(self):
         if self.test:
@@ -160,11 +180,27 @@ class Assistant:
         Better than pytest because it leaves browser open for this case
         """
 
+        #self.test_download()
         self.go_to_ice_man()
         self.go_to_zoom("")
         self.help()
         self.test_click_func()
         self.test_link_funcs()
+
+    def test_download(self):
+        print("Remove this from the test funcs section when done")
+        self.go_to_history("")
+        browser, open_new = self.get_browser_and_open_status("")
+        time.sleep(2)
+        self.click_number("seventeen")
+        time.sleep(2)
+        self.click_number("twelve")
+        time.sleep(5)
+        self.click_number("sixteen")
+        time.sleep(3)
+        browser, open_new = self.get_browser_and_open_status("")
+        browser.click_latest_download()
+        input("done with download")
 
     def test_click_func(self):
         logging.info("Testing click func")
@@ -188,15 +224,52 @@ class Assistant:
 ### Commands ###
 ################
 
+    def start_safe_mode(self, speech):
+        self.cmd_executor.callbacks_dict = self.safe_mode_callback_dict
+        self.cmd_executor.keywords_dict = self.safe_mode_keywords_dict
+
+    def end_safe_mode(self, speech):
+        self.cmd_executor.callbacks_dict = self.og_callback_dict
+        self.cmd_executor.keywords_dict = self.og_keywords_dict
+
+    def start_google_mode(self, speech):
+        print("Shh")
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.get("https://www.google.com/")
+        utils.write_to_stdout("Speak now")
+        r = sr.Recognizer()
+        with sr.Microphone() as source:
+            audio = r.listen(source)
+            try:
+                text = r.recognize_google(audio)
+                print(text)
+                browser.get_el(aria_label="Search").send_keys(text)
+                browser.get_el(aria_label="Search").send_keys(Keys.ENTER)
+                browser.show_links()
+            except speech_recognition.UnknownValueError as e:
+                print(e)
+                print("You didn't say anything")
+
+
+    def go_to_downloads(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        else:
+            browser.click_latest_download()
+
+
     def tab_over(self, speech):
-        browser, open_new = self.browser.open_a_new_tab()
+        browser, open_new = self.get_browser_and_open_status(speech)
         if open_new:
             browser.open()
         else:
             browser.tab_over()
 
-    def open_tab(self, speech):
-        browser, open_new = self.browser.open_a_new_tab()
+    def new_tab(self, speech):
+        browser, open_new = self.get_browser_and_open_status(speech)
         if open_new:
             browser.open()
         else:
@@ -233,13 +306,13 @@ class Assistant:
         browser.show_links(open_new)
 
     def click_number(self, speech):
-        os.system('notify-send "'+callback.__name__+'" "'+speech+'"')
         num = None
         # Remove word by word until you are just left with nums
         for i in range(len(speech.split())):
-            number_str = "".join(speech.split()[i:])
+            number_str = " ".join(speech.split()[i:])
             try:
                 num = w2n.word_to_num(number_str)
+                break
             except ValueError:
                 pass
         try:

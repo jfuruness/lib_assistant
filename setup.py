@@ -15,6 +15,7 @@ setup(
         'pocketsphinx',
         'pynput',
         'selenium',
+        'SpeechRecognition',
         'word2number',
     ],
     classifiers=[
