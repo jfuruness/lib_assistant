@@ -30,6 +30,7 @@ class Command:
         return (f"Desc: {self._help}\n"
                 "\tOptions:\n\t\t") + "\n\t\t".join(self.keyword_list) + "\n"
 
+
 class Link_Command(Command):
     def __init__(self, ways_to_call_link, func_name, name):
         # First get all the ways we can call the website
@@ -41,6 +42,8 @@ class Link_Command(Command):
         super(Link_Command, self).__init__(keyword_list=keyword_list,
                                            func_name=func_name,
                                            _help=f"Goes to {name}")
+
+
 class Mode_Command(Command):
     def __init__(self, ways_to_call, func_name, name, end_func_name):
         keyword_list = []
@@ -72,13 +75,20 @@ class Directional_Command(Command):
                                                   func_name=func_name,
                                                   _help=_help)
 
+
 class Number_Command(Command):
     def __init__(self, num: int, callback_func):
         num_str = num2words(num).replace("-", " ")
+        num_strs = [num_str]
+        if num == 12:
+            num_strs.append("twelfth")
+        elif num == 18:
+            num_strs.append("the dean")
         keyword_list = []
-        for prepend in ["tap ", "click ", "press ", ""]:
-            for prepend_2 in ["", "number "]:
-                keyword_list.append(f"{prepend}{prepend_2}{num_str}")
+        for _num_str in num_strs:
+            for prepend in ["tap ", "click ", "press ", "quick ", ""]:
+                for prepend_2 in ["", "number "]:
+                    keyword_list.append(f"{prepend}{prepend_2}{_num_str}")
         self.callback_func = callback_func
         super(Number_Command, self).__init__(keyword_list=keyword_list,
                                              func_name=callback_func.__name__,

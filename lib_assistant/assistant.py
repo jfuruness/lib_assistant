@@ -23,30 +23,27 @@ __status__ = "Development"
 import logging
 import time
 import sys
-import os
 
 import speech_recognition as sr
 
+import selenium
 from selenium.webdriver.common.keys import Keys
 
 import re
-import smtplib
-import time
-import os
 import email
 import imaplib
-import traceback
 from urllib.parse import unquote
 
-from lib_browser import Convenience_Browser, Side
+from lib_browser import ConvenienceBrowser, Side
 from lib_config import Config
 from lib_speech_recognition_wrapper import Speech_Recognition_Wrapper
-from lib_utils import utils
+from lib_utils.print_funcs import write_to_stdout
 
 from word2number import w2n
 
 from .command import Command, Link_Command, Number_Command
 from .commands import commands
+
 
 class Assistant:
 
@@ -61,7 +58,7 @@ class Assistant:
                 callback = getattr(self, command.func_name)
             except AttributeError:
                 def placeholder_func(speech):
-                    print(f"Placeholder for {command.func_name}")
+                    write_to_stdout(f"Placeholder for {command.func_name}")
                 callback = placeholder_func
 
             command.add_callback_func(callback)
@@ -188,7 +185,7 @@ class Assistant:
         self.test_link_funcs()
 
     def test_download(self):
-        print("Remove this from the test funcs section when done")
+        write_to_stdout("Remove this from the test funcs section when done")
         self.go_to_history("")
         browser, open_new = self.get_browser_and_open_status("")
         time.sleep(2)
@@ -233,24 +230,26 @@ class Assistant:
         self.cmd_executor.keywords_dict = self.og_keywords_dict
 
     def start_google_mode(self, speech):
-        print("Shh")
+        write_to_stdout("Shh")
         browser, open_new = self.get_browser_and_open_status(speech)
         if open_new:
             browser.open()
         browser.get("https://www.google.com/")
-        utils.write_to_stdout("Speak now")
+        write_to_stdout("Speak now")
         r = sr.Recognizer()
         with sr.Microphone() as source:
             audio = r.listen(source)
             try:
                 text = r.recognize_google(audio)
-                print(text)
+                write_to_stdout(text)
                 browser.get_el(aria_label="Search").send_keys(text)
                 browser.get_el(aria_label="Search").send_keys(Keys.ENTER)
                 browser.show_links()
-            except speech_recognition.UnknownValueError as e:
-                print(e)
-                print("You didn't say anything")
+                # Must remove citations because it messes with numbers
+                browser.remove_elements_by_tag("cite")
+            except sr.UnknownValueError as e:
+                write_to_stdout(e)
+                write_to_stdout("You didn't say anything")
 
 
     def go_to_downloads(self, speech):
@@ -307,6 +306,7 @@ class Assistant:
 
     def click_number(self, speech):
         num = None
+        write_to_stdout(f"clicking with speech: {speech}")
         # Remove word by word until you are just left with nums
         for i in range(len(speech.split())):
             number_str = " ".join(speech.split()[i:])
@@ -318,13 +318,13 @@ class Assistant:
         try:
             assert num is not None, "There was no number in text?"
         except AssertionError:
-            logging.warning("no num in text, not executing")
+            write_to_stdout("no num in text, not executing")
             return
         try:
             self.browsers[self.focused_side].click_number(num)
             self.browsers[self.focused_side].show_links()
         except AttributeError:
-            print("You tried to click a number when the browser wasn't open")
+            write_to_stdout("You tried to click a number when the browser wasn't open")
 
     def back(self, speech=""):
         browser, open_new = self.get_browser_and_open_status(speech)
@@ -335,7 +335,7 @@ class Assistant:
     def accept_pop_up(self, speech=""):
         browser, open_new = self.get_browser_and_open_status(speech)
         if open_new:
-           browser.open()
+            browser.open()
         try:
             browser.accept_pop_up()
         except Exception as e:
@@ -355,15 +355,15 @@ class Assistant:
 
     def help(self, speech=""):
         for command in self.standard_commands:
-            print(command)
+            write_to_stdout(command)
             time.sleep(2)
         self.show_websites()
-        print("num command ex:")
-        print(Number_Command(1, self.click_number))
+        write_to_stdout("num command ex:")
+        write_to_stdout(Number_Command(1, self.click_number))
 
     def show_websites(self, speech=""):
         for link_command in self.link_commands:
-            print(link_command)
+            write_to_stdout(link_command)
             time.sleep(2)
 
     def scroll_down(self, speech):
@@ -436,6 +436,14 @@ class Assistant:
         browser.open_math_website(open_new=open_new)
         browser.show_links()
 
+    def show_dog(self, speech: str):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.get(("https://www.google.com/search?q=dogs&hl=en-US&"
+                     "source=lnms&tbm=isch&sa=X&ved=2ahUKEwjuqceNjuPu"
+                     "AhUPd6wKHRs9Bc8Q_AUoAXoECBQQAw&biw=952&bih=841"))
+
 ########################
 ### Helper Functions ###
 ### ONLY for helping ###
@@ -462,7 +470,7 @@ class Assistant:
         side = self.get_browser_side(speech)
 
         if self.browsers[side] is None:
-            self.browsers[side] = Convenience_Browser(side=side)
+            self.browsers[side] = ConvenienceBrowser(side=side)
             open_new = True
         else:
             open_new = False

@@ -15,7 +15,7 @@ import logging
 from logging import DEBUG
 from sys import argv
 
-from lib_utils import utils
+from lib_utils.print_funcs import config_logging
 
 from .assistant import Assistant
 
@@ -31,7 +31,7 @@ def main():
 
     args = parser.parse_args()
     
-    utils.config_logging(DEBUG if args.debug else logging.INFO, "assistant")
+    config_logging(DEBUG if args.debug else logging.INFO)
 
     if args.run:
         Assistant(test=args.test, train=args.train, quiet=args.quiet).run()
