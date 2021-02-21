@@ -20,6 +20,7 @@ __maintainer__ = "Justin Furuness"
 __email__ = "jfuruness@gmail.com"
 __status__ = "Development"
 
+from datetime import datetime
 import logging
 import time
 import sys
@@ -141,13 +142,35 @@ class Assistant:
         self.og_callback_dict = callbacks_dict
         self.og_keywords_dict = keywords_dict
 
+        callback_time_dict = {datetime.now().replace(hour=3, minute=30),
+                                self._history_meeting,
+                              datetime.now().replace(hour=6, minute=20),
+                                self._other_random_meeting}
+
         return Speech_Recognition_Wrapper(keywords_dict=keywords_dict,
                                           callback_dict=callbacks_dict,
+                                          callback_time_dict=callback_time_dict,
                                           removed_words=removed_words,
                                           tuning_phrases=tuning_phrases,
                                           test=self.test,
                                           train=train,
                                           quiet=quiet)
+
+    def _history_meeting(self, speech=""):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.get("https://uconn-cmr.webex.com/webappng/sites/uconn-cmr/"
+                    "meeting/info/7553ef35fd32427c990e416b65c3bc15?"
+                    "MTID=m672192983d12dd34f8181ab5ec22681c")
+        browser.wait_click(_id="smartJoinButton")
+
+    def _other_random_meeting(self, speech=""):
+        browser, open_new = self.get_browser_and_open_status(speech)
+        if open_new:
+            browser.open()
+        browser.get("https://us02web.zoom.us/j/84029224503#success")
+        browser.wait_click(_class="_1FvRrPS6")
 
     def _populate_safe_mode_dict(self):
         self.safe_mode_callback_dict = {}
